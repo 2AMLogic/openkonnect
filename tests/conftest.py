@@ -375,6 +375,32 @@ class EditorFake(FakeBackend):
                 },
             },
         ]
+        #: the board outline in the backend's ``outline`` form (LAY-08). The default
+        #: is ``tests/fixtures/selection.kicad_pcb``: one 100,50-140,75 mm gr_rect.
+        self.outline_data: dict[str, Any] = {
+            "shape_count": 1,
+            "loops": [
+                {
+                    "closed": True,
+                    "role": "outline",
+                    "points_nm": [
+                        _pt(100, 50),
+                        _pt(140, 50),
+                        _pt(140, 75),
+                        _pt(100, 75),
+                    ],
+                    "source_shapes": 1,
+                    "gap_nm": None,
+                }
+            ],
+            "open_chains": [],
+            "outline_nm": self.index["outline_nm"],
+            "grid_origin_nm": _pt(0, 0),
+            "drill_origin_nm": _pt(0, 0),
+            "origins_reason": None,
+            "chain_tolerance_nm": 10_000,
+            "arc_step_deg": 5.0,
+        }
 
         #: tracks, arcs and vias in the backend's ``copper`` form (LAY-05).
         #: The three VIN segments are the fixture's own route (3 + 10 + 3 = 16 mm);
@@ -564,6 +590,10 @@ class EditorFake(FakeBackend):
             "copper_layers": d["copper_layers"],
             "stackup": [dict(row) for row in d["stackup"]],
         }
+
+    def outline(self, ref: BoardRef) -> dict[str, Any]:
+        self.calls.append("outline")
+        return dict(self.outline_data)
 
     def copper(self, ref: BoardRef) -> dict[str, Any]:
         self.calls.append("copper")
