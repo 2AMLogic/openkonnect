@@ -162,7 +162,9 @@ class IpcBackend(Protocol):
         ``length_nm`` (an arc's true arc length, not its chord), and an arc has
         ``mid_nm``. A via instead has ``layers`` (the canonical names of its drill span),
         ``position_nm``, ``diameter_nm`` (None if KiCad reports no copper layer),
-        ``drill_nm`` and ``via_type`` (``"through"``, ``"blind_buried"`` or ``"micro"``);
+        ``drill_nm`` and ``via_type`` (``"through"``, ``"blind_buried"``,
+        ``"micro"``, ``"blind"`` or ``"buried"`` -- the last two new in KiCad 10
+        -- or ``"unknown"`` for an unrecognised type);
         a via has no length. ``outline_nm`` is the C-1 board-frame origin box.
         """
         ...

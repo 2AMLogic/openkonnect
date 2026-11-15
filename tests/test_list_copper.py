@@ -13,6 +13,7 @@ import math
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from kipy.board_types import ArcTrack, BoardRectangle, Track, Via
 from kipy.geometry import Vector2
 from kipy.proto.board.board_types_pb2 import BoardLayer, ViaType
@@ -20,7 +21,7 @@ from kipy.proto.board.board_types_pb2 import BoardLayer, ViaType
 from openkonnect.backend import _copper
 from openkonnect.tools.list_copper import list_copper
 
-from .conftest import MM, EditorFake, FakeBackend, board_ref, make_session
+from .conftest import MM, EditorFake, FakeBackend, _track, board_ref, make_session
 
 
 def run(backend, **kw):
@@ -99,6 +100,18 @@ def test_total_length_per_net_counts_tracks_and_arcs_only():
     assert totals == {"GND": round(math.pi, 6), "VIN": 16.0}
     # the netless via contributes no entry at all
     assert None not in totals and "" not in totals
+
+
+def test_a_netless_track_is_listed_but_totals_nothing():
+    fake = EditorFake()
+    # both shapes of netless -- None and "" -- count as unconnected (`if name:`)
+    fake.copper_list.append(_track("trk-netless", None, (110, 61), (112, 61), length_mm=2))
+    fake.copper_list.append(_track("trk-empty-net", "", (113, 61), (115, 61), length_mm=2))
+    r = run(fake)
+    found = ids(r)
+    assert "trk-netless" in found and "trk-empty-net" in found
+    # the netless copper contributes to no total: the named-net totals are unchanged
+    assert r["total_length_mm_by_net"] == {"GND": round(math.pi, 6), "VIN": 16.0}
 
 
 def test_a_net_left_with_only_a_via_totals_zero():
@@ -293,12 +306,20 @@ def kipy_arc(item_id: str, net: str, start, mid, end, *, layer=LAYER.BL_B_Cu, wi
     return a
 
 
-def kipy_via(item_id: str, net: str, position, *, diameter=800_000, drill=400_000):
+def kipy_via(
+    item_id: str,
+    net: str,
+    position,
+    *,
+    diameter=800_000,
+    drill=400_000,
+    via_type=ViaType.VT_THROUGH,
+):
     v = Via()
     v._proto.id.value = item_id
     v._proto.net.name = net
     v.position = _v(*position)
-    v.type = ViaType.VT_THROUGH
+    v.type = via_type
     v.diameter, v.drill_diameter = diameter, drill
     return v
 
@@ -382,6 +403,22 @@ def test_decode_reads_a_vias_span_size_drill_and_type():
     assert v["diameter_nm"] == 800_000 and v["drill_nm"] == 400_000
     assert v["via_type"] == "through"
     assert "length_nm" not in v  # a via has no length to decode
+
+
+@pytest.mark.parametrize(
+    ("vt", "expected"),
+    [
+        (ViaType.VT_THROUGH, "through"),
+        (ViaType.VT_BLIND_BURIED, "blind_buried"),
+        (ViaType.VT_MICRO, "micro"),
+        (ViaType.VT_BLIND, "blind"),  # new in KiCad 10
+        (ViaType.VT_BURIED, "buried"),  # new in KiCad 10
+        (ViaType.VT_UNKNOWN, "unknown"),
+    ],
+)
+def test_decode_maps_every_via_type_to_its_documented_string(vt, expected):
+    v = decode([], [kipy_via("via-1", "VIN", (119, 57), via_type=vt)])["copper"][0]
+    assert v["via_type"] == expected
 
 
 def test_decode_carries_the_board_outline_for_the_board_frame():
