@@ -3,6 +3,15 @@
 Chronological record of merged pull requests and closed issues, newest first.
 Maintained by the Loom Guide role; entries are appended automatically.
 
+### 2026-11-15
+
+- **Issue #90** (closed): Consolidate three duplicated board-acquisition and validation helpers into tools/common.py
+- **PR #96**: refactor: write the SES-07 board-acquisition sequence once in tools/common
+- **PR #95**: feat: add board_outline (LAY-08), chaining Edge.Cuts into closed polygons
+- **PR #98**: feat: add layers_and_stackup MCP tool (LAY-07)
+- **PR #93**: feat: add list_copper tool for tracks, arcs and vias (LAY-05)
+- **PR #85**: docs: roadmap as of 2026-11-13
+
 ### 2026-11-12
 
 - **PR #80**: Bump Repo Skills 0.25.10 -> 0.26.1
