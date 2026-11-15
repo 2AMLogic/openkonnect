@@ -420,6 +420,84 @@ class EditorFake(FakeBackend):
             },
         ]
 
+        #: enabled layers and stackup in the backend's ``layers_and_stackup`` form
+        #: (LAY-07): nm thicknesses, presence already resolved to ``None``. The
+        #: stackup rows are F.SilkS (no thickness reported), F.Cu (35 um), the FR4
+        #: core (1.51 mm, one sub-layer), B.Cu (35 um) and B.Mask (a soldermask row
+        #: with no detail submessage, the pre-10.0.6 KiCad shape). The rows with a
+        #: thickness sum to 1.58 mm.
+        self.layer_stackup: dict[str, Any] = {
+            "layers": [
+                {"name": "B.Cu", "user_name": "B.Cu"},
+                {"name": "B.Mask", "user_name": "B.Mask"},
+                {"name": "B.SilkS", "user_name": "B.SilkS"},
+                {"name": "Cmts.User", "user_name": "Cmts.User"},
+                {"name": "Dwgs.User", "user_name": "Dwgs.User"},
+                {"name": "Edge.Cuts", "user_name": "Edge.Cuts"},
+                {"name": "F.Cu", "user_name": "F.Cu"},
+                {"name": "F.Mask", "user_name": "F.Mask"},
+                {"name": "F.SilkS", "user_name": "F.SilkS"},
+            ],
+            "copper_layers": 2,
+            "stackup": [
+                {
+                    "kind": "silkscreen",
+                    "layer": None,
+                    "user_name": None,
+                    "enabled": True,
+                    "thickness_nm": None,
+                    "material": None,
+                    "dielectric": None,
+                },
+                {
+                    "kind": "copper",
+                    "layer": "F.Cu",
+                    "user_name": "F.Cu",
+                    "enabled": True,
+                    "thickness_nm": 35_000,
+                    "material": None,
+                    "dielectric": None,
+                },
+                {
+                    "kind": "dielectric",
+                    "layer": None,
+                    "user_name": None,
+                    "enabled": True,
+                    "thickness_nm": 1_510_000,
+                    "material": "FR4",
+                    "dielectric": {
+                        "type": "core",
+                        "sub_layers": [
+                            {
+                                "material": "FR4",
+                                "epsilon_r": 4.6,
+                                "loss_tangent": 0.02,
+                                "thickness_nm": 1_510_000,
+                            }
+                        ],
+                    },
+                },
+                {
+                    "kind": "copper",
+                    "layer": "B.Cu",
+                    "user_name": "B.Cu",
+                    "enabled": True,
+                    "thickness_nm": 35_000,
+                    "material": None,
+                    "dielectric": None,
+                },
+                {
+                    "kind": "soldermask",
+                    "layer": None,
+                    "user_name": None,
+                    "enabled": True,
+                    "thickness_nm": None,
+                    "material": None,
+                    "dielectric": None,
+                },
+            ],
+        }
+
     def items_by_id(self) -> dict[str, dict[str, Any]]:
         out: dict[str, dict[str, Any]] = {}
         for fp in self.index["footprints"]:
@@ -477,6 +555,15 @@ class EditorFake(FakeBackend):
     def zones(self, ref: BoardRef) -> dict[str, Any]:
         self.calls.append("zones")
         return {"zones": [dict(z) for z in self.zone_list]}
+
+    def layers_and_stackup(self, ref: BoardRef) -> dict[str, Any]:
+        self.calls.append("layers_and_stackup")
+        d = self.layer_stackup
+        return {
+            "layers": [dict(layer) for layer in d["layers"]],
+            "copper_layers": d["copper_layers"],
+            "stackup": [dict(row) for row in d["stackup"]],
+        }
 
     def copper(self, ref: BoardRef) -> dict[str, Any]:
         self.calls.append("copper")

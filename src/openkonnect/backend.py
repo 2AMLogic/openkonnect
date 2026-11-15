@@ -109,6 +109,25 @@ class IpcBackend(Protocol):
         """
         ...
 
+    def layers_and_stackup(self, ref: BoardRef) -> dict[str, Any]:
+        """Enabled layers and the physical stackup (LAY-07), as plain data.
+
+        Returns ``{"layers": [layer, ...], "copper_layers": int, "stackup": [row, ...]}``.
+        ``layers`` is the board's enabled layer set (copper and non-copper), each
+        entry ``{"name": canonical, "user_name": ...}``. Each stackup row is the
+        corresponding build-up entry, in order from top to bottom: ``kind``
+        (``"copper"``, ``"dielectric"``, ``"silkscreen"``, ``"soldermask"``,
+        ``"solderpaste"``, ...), ``layer`` (canonical name; None for a row on no
+        board layer, e.g. a dielectric), ``user_name`` (None when unset), ``enabled``,
+        ``thickness_nm`` (None when KiCad reports no thickness), ``material``
+        (None when unset) and ``dielectric`` — None when KiCad reports no detail
+        submessage, else ``{"type": "core"/"prepreg"/..., "sub_layers": [sub, ...]}``
+        with each sub-layer ``{"material", "epsilon_r", "loss_tangent", "thickness_nm"}``
+        (thickness None when unreported; the other fields None when unset). Lengths
+        in nanometres.
+        """
+        ...
+
     def copper(self, ref: BoardRef) -> dict[str, Any]:
         """Tracks, arcs and vias (LAY-05), as plain data.
 
@@ -325,6 +344,9 @@ class KipyBackend:
 
     def zones(self, ref: BoardRef) -> dict[str, Any]:
         return _zones(self, ref)
+
+    def layers_and_stackup(self, ref: BoardRef) -> dict[str, Any]:
+        return _layers_and_stackup(self, ref)
 
     def copper(self, ref: BoardRef) -> dict[str, Any]:
         return _copper(self, ref)
@@ -848,6 +870,66 @@ def _zones(self: KipyBackend, ref: BoardRef) -> dict[str, Any]:
             }
         )
     return {"zones": out}
+
+
+def _stackup_dielectric(dielectric: Any) -> dict[str, Any] | None:
+    """A stackup row's dielectric detail as plain data, or None when KiCad gives none.
+
+    The detail submessage sits in a ``details`` oneof that is independent of the
+    row's ``type``: KiCad 10.0.0-10.0.5 reports the type but leaves the oneof
+    empty, and an empty oneof is ``null``, never a guessed default (C-2).
+    ``epsilon_r`` / ``loss_tangent`` / ``material_name`` are plain proto3 scalars
+    with no presence, so an unset one maps to ``null`` on the falsy convention;
+    ``thickness`` does have presence (``HasField``), so unset vs explicit zero
+    stay distinct.
+    """
+    if dielectric is None:
+        return None
+    from kipy.proto.board.board_pb2 import BoardStackupDielectricType
+
+    sub_layers = []
+    for sub in dielectric.layers:
+        sub_layers.append(
+            {
+                "material": sub.material_name or None,
+                "epsilon_r": sub.epsilon_r or None,
+                "loss_tangent": sub.loss_tangent or None,
+                "thickness_nm": int(sub.thickness) if sub.proto.HasField("thickness") else None,
+            }
+        )
+    return {
+        "type": BoardStackupDielectricType.Name(dielectric.type).removeprefix("BSDT_").lower(),
+        "sub_layers": sub_layers,
+    }
+
+
+def _layers_and_stackup(self: KipyBackend, ref: BoardRef) -> dict[str, Any]:
+    from kipy.proto.board.board_pb2 import BoardStackupLayerType
+
+    board = self._board(ref)
+    layers = []
+    for lyr in board.get_enabled_layers():
+        name = _layer_name(lyr)
+        if name is None:
+            continue
+        layers.append({"name": name, "user_name": board.get_layer_name(lyr)})
+
+    rows = []
+    for entry in board.get_stackup().layers:
+        rows.append(
+            {
+                "kind": BoardStackupLayerType.Name(entry.type).removeprefix("BSLT_").lower(),
+                "layer": _layer_name(entry.layer),
+                "user_name": entry.user_name or None,
+                "enabled": bool(entry.enabled),
+                "thickness_nm": (
+                    int(entry.thickness) if entry.proto.HasField("thickness") else None
+                ),
+                "material": entry.material_name or None,
+                "dielectric": _stackup_dielectric(entry.dielectric),
+            }
+        )
+    return {"layers": layers, "copper_layers": board.get_copper_layer_count(), "stackup": rows}
 
 
 def _via_layers(via: Any) -> list[str]:
