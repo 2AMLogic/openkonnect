@@ -11,7 +11,7 @@ from typing import Any
 
 from .. import errors as E
 from ..session import Session
-from .common import is_layer, require_board
+from .common import check_str, is_layer, require_board
 
 DESCRIPTION = (
     "List the copper zones and rule areas (keepouts) on the open board, live, unsaved "
@@ -23,14 +23,6 @@ DESCRIPTION = (
     "name (e.g. 'F.Cu'), keeps zones on that layer. A filter that matches nothing is an "
     "empty list; an unknown layer is invalid_argument."
 )
-
-
-def _check_str(name: str, value: Any) -> str | None:
-    if value is None or value == "":
-        return None
-    if not isinstance(value, str):
-        raise E.invalid_argument(f"{name} must be a string.", **{name: value})
-    return value
 
 
 def describe_zones(
@@ -68,8 +60,8 @@ def describe_zones(
 
 
 def list_zones(session: Session, net: Any = None, layer: Any = None) -> dict[str, Any]:
-    net = _check_str("net", net)
-    layer = _check_str("layer", layer)
+    net = check_str("net", net)
+    layer = check_str("layer", layer)
     if layer is not None and not is_layer(layer):
         raise E.invalid_argument(
             f"Unknown layer {layer!r}. Use a canonical name such as 'F.Cu', 'In1.Cu' or 'B.Cu'.",
