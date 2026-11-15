@@ -9,7 +9,7 @@ from mcp.shared.memory import create_connected_server_and_client_session
 
 from openkonnect.server import build_server
 
-from .conftest import FakeBackend, board_ref, make_session
+from .conftest import EditorFake, FakeBackend, board_ref, make_session
 
 
 def _call(session, tool: str):
@@ -31,6 +31,7 @@ def test_tool_list():
         "board_summary",
         "footprint_pads",
         "get_selection",
+        "layers_and_stackup",
         "list_copper",
         "list_footprints",
         "list_instances",
@@ -48,6 +49,7 @@ def test_tool_list():
         "session_status",
         "footprint_pads",
         "get_selection",
+        "layers_and_stackup",
         "list_copper",
         "list_footprints",
         "list_instances",
@@ -85,6 +87,29 @@ def test_board_summary_error_over_mcp():
     _, result = _call(make_session(sockets=[], running=True, api_cfg=False), "board_summary")
     assert result.isError is True
     assert result.structuredContent["error"]["code"] == "ipc_disabled"
+
+
+def test_layers_and_stackup_over_mcp():
+    # called with {} args: the tool takes no inputs (LAY-07)
+    _, result = _call(make_session(EditorFake()), "layers_and_stackup")
+    assert result.isError is False
+    payload = result.structuredContent
+    assert payload["ok"] is True
+    assert payload["copper_layers"] == 2
+    assert payload["total_thickness_mm"] == 1.58
+
+
+def test_layers_and_stackup_schema_has_no_inputs():
+    server = build_server(make_session(EditorFake()))
+
+    async def go():
+        async with create_connected_server_and_client_session(server._mcp_server) as client:
+            tools = await client.list_tools()
+            return {t.name: t for t in tools.tools}
+
+    by_name = anyio.run(go)
+    schema = by_name["layers_and_stackup"].inputSchema
+    assert not schema.get("properties") and not schema.get("required")
 
 
 def test_show_findings_over_mcp_accepts_a_kct_json_object():
