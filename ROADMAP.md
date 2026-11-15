@@ -5,7 +5,7 @@ drive a **running KiCad 10** editor. openkonnect is the live-editor layer;
 anything that works offline on `.kicad_*` files belongs in
 [kicad-tools](https://github.com/rjwalters/kicad-tools).
 
-**Status as of 2026-11-13, `main` @ `eb3173a`.** Phase and principle numbers
+**Status as of 2026-11-15, `main` @ `5110555`.** Phase and principle numbers
 are stable: [spec/capabilities.md](spec/capabilities.md) cites them.
 
 ## Principles
@@ -39,7 +39,7 @@ are stable: [spec/capabilities.md](spec/capabilities.md) cites them.
 
 ## Where it stands
 
-Twelve MCP tools are registered and unit-tested on a fake IPC backend (README
+Fourteen MCP tools are registered and unit-tested on a fake IPC backend (README
 tool table; `src/openkonnect/tools/`). CI runs lint, tests on Python 3.10 and
 3.12, and a non-blocking `kicad-tools-main` job.
 
@@ -54,8 +54,9 @@ tool table; `src/openkonnect/tools/`). CI runs lint, tests on Python 3.10 and
 - **Phase 1, Live session and read-only inspection: partly built.** Done:
   `list_instances` SES-02 (#70), `get_selection` SES-08 (#5, PR #16),
   `list_footprints` LAY-02 (#68), `footprint_pads` LAY-03 (#75), `list_nets`
-  LAY-04 (#69), `list_zones` LAY-06 (#78). Not built: SES-03, SES-11, SES-12,
-  SES-16, LAY-05, LAY-07, LAY-08, LAY-09.
+  LAY-04 (#69), `list_zones` LAY-06 (#78), `list_copper` LAY-05 (#86,
+  PR #93), `layers_and_stackup` LAY-07 (#87, PR #98). Not built: SES-03,
+  SES-11, SES-12, SES-16, LAY-08, LAY-09.
 - **Phase 4, Design review: two items built early.** `show_findings` SES-09
   (PR #16) and the selection round-trip tests SES-10
   (`tests/test_show_findings.py`, `test_round_trip_*`; kept green against
@@ -63,23 +64,24 @@ tool table; `src/openkonnect/tools/`). CI runs lint, tests on Python 3.10 and
 - **Phases 2, 3, 5, 6: not started.** No tool edits the open board over IPC
   yet; the only writes are save, reload and the `kct` handoff.
 - **Live verification is behind the code.** The PRs for `list_instances` (#71),
-  `list_footprints` (#72), `list_nets` (#73), `footprint_pads` (#76) and
-  `list_zones` (#79) each record that no run against a real KiCad was made.
-  `list_zones` has no test under `tests/live/` at all.
+  `list_footprints` (#72), `list_nets` (#73), `footprint_pads` (#76),
+  `list_zones` (#79), `list_copper` (#93) and `layers_and_stackup` (#98) each
+  record that no run against a real KiCad was made. `list_zones` has no test
+  under `tests/live/` at all; the rest do.
 
 ## Now
 
-Can start today; each is one PR built from an existing spec entry. Per
+Each is one PR built from an existing spec entry. Per
 [spec/README.md](spec/README.md), the implementer must not be that entry's
-spec author. None has an issue yet.
+spec author. `board_outline` is already being built (#88, `loom:building`)
+and the kicad-tools catch-up is #89 (`loom:curated`); the rest have no issue
+yet.
 
 | What | Done when | Blocked by |
 |------|-----------|------------|
-| `list_copper` (LAY-05): tracks, arcs and vias by net, layer or box | Tool registered; fake-backend unit tests; a `tests/live/` test; README row; spec entry marked built; `tests/test_doc_drift.py` passes | nothing |
-| `layers_and_stackup` (LAY-07) | Same checklist as above | nothing |
-| `board_outline` (LAY-08): closed polygons, extents, frame offset, grid and drill origins | Same checklist; an open or missing outline is reported, never a rectangle | nothing |
-| Catch up with kicad-tools: `pyproject.toml` pins `>=0.24,<0.25` and `uv.lock` resolves 0.24.0, while upstream is at v0.29.0 and has closed G1, G2 and G4 (kicad-tools #8015, #8016, #8017) | Pin and `uv.lock` raised to the current release, `uv run pytest -rs` green; the gap tables in `docs/architecture.md` and the spec say which release closed each gap | nothing |
-| `snapshot_board` (SES-11): the open board, unsaved changes included, as a temporary `.kicad_pcb` with project files beside it | Same checklist as LAY-05; the saved file's hash is unchanged after the call | nothing |
+| `board_outline` (LAY-08): closed polygons, extents, frame offset, grid and drill origins — in progress as #88 | Tool registered; fake-backend unit tests; a `tests/live/` test; README row; spec entry marked built; `tests/test_doc_drift.py` passes; an open or missing outline is reported, never a rectangle | nothing |
+| Catch up with kicad-tools (#89): `pyproject.toml` pins `>=0.24,<0.25` and `uv.lock` resolves 0.24.0, while upstream is at v0.29.0 and has closed G1, G2 and G4 (kicad-tools #8015, #8016, #8017) | Pin and `uv.lock` raised to the current release, `uv run pytest -rs` green; the gap tables in `docs/architecture.md` and the spec say which release closed each gap | nothing |
+| `snapshot_board` (SES-11): the open board, unsaved changes included, as a temporary `.kicad_pcb` with project files beside it | Same checklist as `board_outline`; the saved file's hash is unchanged after the call | nothing |
 | `select_instance` (SES-03) | Same checklist; a different instance answering later fails with `instance_changed` | nothing |
 | Live test for `list_zones` | `tests/live/test_live_list_zones.py` exists, is skipped without `--live`, and names the fixture board it needs | nothing |
 
@@ -126,11 +128,15 @@ Direction only. Each phase keeps its original exit criterion.
 
 ## Blocked and waiting
 
-- **Nothing is dispatchable today.** [WORK_PLAN.md](WORK_PLAN.md) shows every
-  bucket empty, and the Now items above have no issues yet.
+- **[WORK_PLAN.md](WORK_PLAN.md)'s generated body lags the labels.** Its
+  buckets were regenerated on `main` and now list #86, #87, #88, #90 and #91,
+  but its In Progress row still reads _None_ while #88 carries
+  `loom:building`. Trust the forge labels over the generated table when
+  picking work.
 - **#74, live run of `list_nets` against KiCad 10**, is held for a person at a
   machine with KiCad 10 and the API on. The same kind of run is owed for
-  `list_instances`, `list_footprints`, `footprint_pads` and `list_zones`.
+  `list_instances`, `list_footprints`, `footprint_pads`, `list_zones`,
+  `list_copper` and `layers_and_stackup`.
 - **Live tests cannot run in CI.** KiCad 10's API talks only to a running GUI;
   headless use arrives in KiCad 11 (spec, "What KiCad 10's IPC API allows").
   Until then live evidence comes from hand runs with `--live`.
