@@ -963,16 +963,22 @@ state, including unsaved changes. Every edit follows C-6.
   `thickness_mm` and `material`. `thickness_mm` is `null` when KiCad reports
   no thickness and `0.0` only for an explicit zero; `material`, `epsilon_r`
   and `loss_tangent` have no presence in KiCad's protocol, so an unset value
-  is `null` on the same falsy convention (never a guessed default). A
-  dielectric row also has `dielectric`: `type` (`core`, `prepreg`) and
-  `sub_layers`, each with `material`, `epsilon_r`, `loss_tangent` and
-  `thickness_mm`; `dielectric` is `null` when KiCad reports no detail
-  submessage, which a KiCad before 10.0.6 does for every row. The
-  `dielectric` section is branched on the presence of that submessage, never
-  on the row's `type`. `total_thickness_mm` sums the rows that carry a
-  thickness; a board whose stackup reports no thickness anywhere has a
-  `null` total, and an empty stackup is an empty list, not a zero-thickness
-  board.
+  is `null` on the same falsy convention (never a guessed default). `enabled`
+  also has no field presence in KiCad's protocol, so an unset flag is
+  indistinguishable from an explicit `false`; this is why the total is not
+  filtered on it — an enabled-only sum would report `null` for every board
+  whose KiCad leaves the flag unset. A dielectric row also has `dielectric`:
+  `type` (`core`, `prepreg`) and `sub_layers`, each with `material`,
+  `epsilon_r`, `loss_tangent` and `thickness_mm`; `dielectric` is `null` when
+  KiCad reports no detail submessage, which a KiCad before 10.0.6 does for
+  every row. The `dielectric` section is branched on the presence of that
+  submessage, never on the row's `type`. `total_thickness_mm` sums every row
+  that reports a thickness, disabled rows included — it is the stackup's
+  total, not necessarily the fabricated board thickness; the per-row `enabled`
+  flags and `thickness_mm` values are in the result, so a consumer wanting an
+  enabled-only total can compute it. A board whose stackup reports no
+  thickness anywhere has a `null` total, and an empty stackup is an empty
+  list, not a zero-thickness board.
 
 ### LAY-08 `board_outline`
 - **Class:** live-editor · **kicad-tools:** partial (board extents in MCP
