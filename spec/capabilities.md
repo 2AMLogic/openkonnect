@@ -894,7 +894,27 @@ state, including unsaved changes. Every edit follows C-6.
   endpoints or centre, the via's size and drill, and locked state. Plus a total
   length per net.
 - **Failure modes:** `no_document`; `invalid_argument` for an unknown layer.
+- **Status:** built. Lengths come from kicad-python's `Track.length()` /
+  `ArcTrack.length()`.
 - **Sources:** P-D3, P-T7.
+- **As built:** tracks, arcs and vias only; zones are
+  [LAY-06](#lay-06-list_zones). `net` is an exact net name, `layer` a canonical
+  layer name: a track or arc matches its own layer, a via matches either end of
+  its drill span. `box` keeps an item when **any** point it reports is inside
+  (a track's two endpoints, an arc's start, mid and end, a via's centre), so a
+  track with one end in the area is never silently dropped; `box.frame` is
+  required and `board` on a board with no Edge.Cuts outline is
+  `invalid_argument`. Each item has `kind`, `id` (session-scoped,
+  `no_file_reference: true`), `net` (`null` when unconnected), the points in
+  both C-1 frames (the `_board_mm` points are `null` without an outline) and
+  `locked`. A track or arc has `layer`, `width_mm` and `length_mm` — an arc's
+  **true arc length**, not its chord; a via instead has `layers` (its drill
+  span), `diameter_mm` (`null` if KiCad reports no copper layer for it),
+  `drill_mm`, `via_type` (`through`, `blind_buried` or `micro`) and
+  `length_mm: null`, since a via spans layers rather than running along one.
+  `total_length_mm_by_net` totals the **filtered** items, not the whole board,
+  and `filters` is echoed beside it; a named net that kept only vias totals
+  `0.0`. A filter that matches nothing is an empty list.
 
 ### LAY-06 `list_zones`
 - **Class:** live-editor · **kicad-tools:** file-level equivalent already in
@@ -930,7 +950,29 @@ state, including unsaved changes. Every edit follows C-6.
     how thick it is and what it is made of, the dielectric properties where
     KiCad gives them, and the total thickness.
 - **Failure modes:** `no_document`.
+- **Status:** built.
 - **Sources:** P-D3, P-T7.
+- **As built:** the result has three sections beside `source` and `board`:
+  `layers` (one entry per enabled board layer, canonical name and the user's
+  name — includes non-stackup layers such as `Edge.Cuts` or `Dwgs.User`),
+  `copper_layers`, and `stackup` (every row of KiCad's stackup, top to
+  bottom, reported with its `enabled` flag — a disabled row is reported, not
+  dropped). A stackup row has `kind` (`copper`, `dielectric`, `silkscreen`,
+  `soldermask`, `solderpaste`), `layer` (canonical name; `null` for a
+  dielectric row, which is on no board layer), `user_name`, `enabled`,
+  `thickness_mm` and `material`. `thickness_mm` is `null` when KiCad reports
+  no thickness and `0.0` only for an explicit zero; `material`, `epsilon_r`
+  and `loss_tangent` have no presence in KiCad's protocol, so an unset value
+  is `null` on the same falsy convention (never a guessed default). A
+  dielectric row also has `dielectric`: `type` (`core`, `prepreg`) and
+  `sub_layers`, each with `material`, `epsilon_r`, `loss_tangent` and
+  `thickness_mm`; `dielectric` is `null` when KiCad reports no detail
+  submessage, which a KiCad before 10.0.6 does for every row. The
+  `dielectric` section is branched on the presence of that submessage, never
+  on the row's `type`. `total_thickness_mm` sums the rows that carry a
+  thickness; a board whose stackup reports no thickness anywhere has a
+  `null` total, and an empty stackup is an empty list, not a zero-thickness
+  board.
 
 ### LAY-08 `board_outline`
 - **Class:** live-editor · **kicad-tools:** partial (board extents in MCP
