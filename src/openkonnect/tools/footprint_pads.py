@@ -14,7 +14,7 @@ from typing import Any
 
 from .. import errors as E
 from ..session import Session
-from .common import frame_offset, mm, require_board
+from .common import board_point_mm, frame_offset, mm, point_mm, require_board
 
 DESCRIPTION = (
     "Resolve pads on the open board, live (unsaved changes included). refs is a list of "
@@ -104,15 +104,9 @@ def _describe(p: dict[str, Any], offset: dict[str, int] | None) -> dict[str, Any
     }
     if p.get("net_reason"):
         entry["net_reason"] = p["net_reason"]
-    entry["position_mm"] = (
-        {"frame": "file", "x_mm": mm(pos["x"]), "y_mm": mm(pos["y"])} if pos else None
-    )
+    entry["position_mm"] = point_mm(pos) if pos else None
     if pos is not None and offset is not None:
-        entry["position_board_mm"] = {
-            "frame": "board",
-            "x_mm": mm(pos["x"] - offset["x0_nm"]),
-            "y_mm": mm(pos["y"] - offset["y0_nm"]),
-        }
+        entry["position_board_mm"] = board_point_mm(pos, offset)
     entry["layers"] = list(p.get("layers", []))
     entry["shape"] = p.get("shape")
     size = p.get("size_nm")

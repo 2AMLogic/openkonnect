@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..session import Session
-from .common import box_mm, frame_offset, mm, point_mm, require_board
+from .common import board_point_mm, box_mm, frame_offset, mm, point_mm, require_board
 
 DESCRIPTION = (
     "Give the outline of the board open in KiCad, live (unsaved changes included): the "
@@ -85,14 +85,7 @@ def _origin(
     """One origin in both frames (C-1); ``board`` is null, never zero, with no frame."""
     if nm is None:
         return {"present": False, "reason": reason}
-    board = None
-    if offset_nm is not None:
-        board = {
-            "frame": "board",
-            "x_mm": mm(nm["x"] - offset_nm["x0_nm"]),
-            "y_mm": mm(nm["y"] - offset_nm["y0_nm"]),
-        }
-    return {"present": True, "file": point_mm(nm), "board": board}
+    return {"present": True, "file": point_mm(nm), "board": board_point_mm(nm, offset_nm)}
 
 
 def describe_outline(data: dict[str, Any]) -> dict[str, Any]:
