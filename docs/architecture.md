@@ -49,15 +49,22 @@ These come from the spec's
 
 | ID | Gap | Needed by | Upstream |
 |----|-----|-----------|----------|
-| G1 | A stable, versioned finding format shared by the commands that emit findings | SES-09, SES-10 | [rjwalters/kicad-tools#8015](https://github.com/rjwalters/kicad-tools/issues/8015) (open) |
-| G2 | A check limited to a region or a set of references (`kct check --only` limits *which* checks run, not *where*) | REV-07 | [rjwalters/kicad-tools#8016](https://github.com/rjwalters/kicad-tools/issues/8016) (open) |
+| G1 | A stable, versioned finding format shared by the commands that emit findings | SES-09, SES-10 | [rjwalters/kicad-tools#8015](https://github.com/rjwalters/kicad-tools/issues/8015) (completed: `Finding` locators in net-status JSON and `measure_clearance`, shipped in 0.25) |
+| G2 | A check limited to a region or a set of references (`kct check --only` limits *which* checks run, not *where*) | REV-07 | [rjwalters/kicad-tools#8016](https://github.com/rjwalters/kicad-tools/issues/8016) (completed: `kct check --bbox/--refs/--nets`, shipped in 0.25) |
 | G3 | A semantic diff between two board files | SES-12 | [rjwalters/kicad-tools#6417](https://github.com/rjwalters/kicad-tools/issues/6417) (completed: `kct pcb diff OLD NEW`, shipped in 0.24) |
-| G4 | Plot, 3D and alternative fabrication exports (PDF and SVG plots, STEP, IPC-2581, ODB++) | MFG-03 | [rjwalters/kicad-tools#8017](https://github.com/rjwalters/kicad-tools/issues/8017) (open) |
+| G4 | Plot, 3D and alternative fabrication exports (PDF and SVG plots, STEP, IPC-2581, ODB++) | MFG-03 | [rjwalters/kicad-tools#8017](https://github.com/rjwalters/kicad-tools/issues/8017) (completed: `kct export-formats`, shipped in 0.25) |
 
 G3 was not filed again. kicad-tools already ships it as `kct pcb diff`, which
 pairs items by reference, by normalised content and by uuid, and has JSON
-output. SES-12 should be built on it. The spec still lists G3 as a gap, and
-that entry should be updated in a later spec revision.
+output. SES-12 should be built on it. The spec marks G3 resolved upstream in
+its gap table.
+
+G1, G2 and G4 were filed on rjwalters/kicad-tools and closed as completed on
+2026-10-27. All three first shipped in kicad-tools 0.25.0: `Finding` locators
+in net-status JSON and `measure_clearance` (G1), `kct check --bbox`,
+`--refs` and `--nets` (G2), and `kct export-formats` (G4). The spec marks
+them resolved upstream in the same way, so SES-09 and SES-10, REV-07 and
+MFG-03 can be built against the locked release.
 
 **The Freerouting runner is not a gap.** An earlier draft of the spec listed
 one. That request was already filed upstream as
@@ -99,7 +106,7 @@ This is verified on files, never on editor state:
 
 ## Version pin and the kicad-tools-main job
 
-`pyproject.toml` pins `kicad-tools>=0.24,<0.25`, the minor series resolved in
+`pyproject.toml` pins `kicad-tools>=0.29,<0.30`, the minor series resolved in
 `uv.lock`. The regular `lint` and `test` CI jobs run against that locked
 release.
 

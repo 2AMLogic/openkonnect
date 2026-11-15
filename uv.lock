@@ -373,7 +373,7 @@ wheels = [
 
 [[package]]
 name = "kicad-tools"
-version = "0.24.0"
+version = "0.29.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -387,9 +387,9 @@ dependencies = [
     { name = "shapely", version = "2.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/cd/33edaf955819b5b37d76cf23138388ebe143307c7e4ac75261683286e444/kicad_tools-0.24.0.tar.gz", hash = "sha256:07b939e3402dd841d6d9e2dc5c459b6d49e817d18d526d3a1e9ac1e2825e2101", size = 24903641, upload-time = "2026-10-20T15:30:39.92Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/2c/84ccd642e6098bd0142b7faa6e3d41cb83aceef0b348ba30645548178187/kicad_tools-0.29.0.tar.gz", hash = "sha256:913d0747b6f2df76d41d3d77c5bf0fb8326a3cacc1e77d1401cc4a1356bcbfe8", size = 26419793, upload-time = "2026-11-10T00:51:20.47Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/7a/74e3d7d6750ea37205979f87e62400733840ff9853495287fc39cd3edb61/kicad_tools-0.24.0-py3-none-any.whl", hash = "sha256:fd66be79d553b988a4078b1fda1cf6c0374e0991c9034cfe9e83b8a7172b474e", size = 7533164, upload-time = "2026-10-20T15:30:35.763Z" },
+    { url = "https://files.pythonhosted.org/packages/30/66/a3d0e0052f6158c454da7ffa42686d8d6c60b50bca61adc65e58be4f8e68/kicad_tools-0.29.0-py3-none-any.whl", hash = "sha256:a83972272ae64f886b1915f818ba95a7286fda6a9bff3078b0774ed3b52d5d56", size = 8092180, upload-time = "2026-11-10T00:51:16.081Z" },
 ]
 
 [[package]]
@@ -688,7 +688,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "kicad-python", specifier = ">=0.8,<0.9" },
-    { name = "kicad-tools", specifier = ">=0.24,<0.25" },
+    { name = "kicad-tools", specifier = ">=0.29,<0.30" },
     { name = "mcp", specifier = ">=1.2,<2" },
 ]
 
