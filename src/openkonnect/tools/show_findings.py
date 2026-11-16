@@ -1,10 +1,14 @@
 """SES-09 ``show_findings``: point the user at the items kicad-tools findings concern.
 
-Takes the JSON a finding-emitting ``kct`` command printed (``--format json``),
-or a list of its findings. Each finding's locators (references, ``REF.PAD``,
-net names, a point in a known frame, a layer) are read through kicad-tools'
-own output models (``findings.py``), resolved against the live board, and the
-resolved items are **selected** in the PCB editor (replace semantics).
+Takes the versioned finding payload a finding-emitting ``kct`` command prints
+with ``--format json`` (``kct check``, ``kct drc``, ``kct detect-mistakes``,
+``kct net-status``, or the ``measure_clearance`` MCP tool): every emitter
+spreads ``schema_version`` and a ``findings`` array into its JSON. That array
+alone, a bare findings array, or one finding is accepted too. Each finding's
+locators (references, ``REF.PAD`` names, net names, a point or bbox in the
+file frame, a layer) are read from the finding's explicit fields
+(``findings.py``), resolved against the live board, and the resolved items
+are **selected** in the PCB editor (replace semantics).
 
 KiCad 10 gap (spec limitation 7, SES-14, SES-15): kicad-python 0.8 documents
 no request to zoom the view or highlight a net. The only route is
@@ -20,20 +24,17 @@ How locators become items:
 * a net selects its copper (tracks, arcs, vias, zones). A net with no copper
   is represented by the finding's own pads on it if it names any, else by all
   of the net's pads;
-* a name the model does not type (``kct check`` items, ``detect-mistakes``
-  components) is matched against references, ``REF.PAD`` names and nets; a
-  name matching more than one is ``ambiguous_reference``, never guessed;
-* a point is used only when the finding resolved no name: it selects the
-  smallest item whose bounding box contains it (on the finding's layer, when
-  given). Otherwise it is checked against the resolved items.
+* when the finding resolved no name and carries a ``bbox``, the smallest
+  item(s) whose bounding box overlaps that region are selected;
+* otherwise a point is used only when the finding resolved no name: it
+  selects the smallest item whose bounding box contains it (on the finding's
+  layer, when given). Otherwise it is checked against the resolved items.
 
-A point is optional. kicad-tools' models declare ``location`` as optional
-(``Location | None``), and ``kct check`` on kicad-tools ``main`` emits
-``"location": null`` for findings that 0.24 located. A finding whose point is
-null, missing or not an ``(x, y)`` pair is resolved from its references,
-pads and nets alone; its result has ``has_point: false`` and a
-``point_note`` saying so, and no coordinate is invented. A finding with no
-point *and* no name is ``invalid_argument``, naming its index.
+A point is optional. A finding whose point is null, missing or not an
+``(x, y)`` pair is resolved from its references, pads and nets alone; its
+result has ``has_point: false`` and a ``point_note`` saying so, and no
+coordinate is invented. A finding with no point, no bbox and no name is
+``invalid_argument``, naming its index.
 """
 
 from __future__ import annotations
@@ -52,18 +53,18 @@ from .get_selection import describe_selection
 
 DESCRIPTION = (
     "Point the user at kicad-tools findings in KiCad's PCB editor: resolve each finding's "
-    "locators (reference designators, 'REF.PAD', net names, a point) against the live "
-    "board and select the affected items (replacing the selection). findings is the JSON "
-    "a kct command printed with --format json (kct check, kct drc, kct detect-mistakes, "
-    "kct net-status), or a list of its findings. mode: select | highlight | both; focus: "
-    "'all', a finding index, 'next' or 'previous'; zoom: true/false. On KiCad 10 there is "
-    "no documented zoom or net-highlight API, so highlight and zoom report "
+    "locators (reference designators, 'REF.PAD', net names, a point or region) against the "
+    "live board and select the affected items (replacing the selection). findings is the "
+    "versioned JSON a finding-emitting kct command printed with --format json (kct check, "
+    "kct drc, kct detect-mistakes, kct net-status, or the measure_clearance MCP tool), its "
+    "findings array, a bare findings array, or one finding. mode: select | highlight | both; "
+    "focus: 'all', a finding index, 'next' or 'previous'; zoom: true/false. On KiCad 10 "
+    "there is no documented zoom or net-highlight API, so highlight and zoom report "
     "unsupported_on_this_kicad while the selection still happens. Per finding the result "
     "lists the resolved items, the locators that did not resolve with a reason, and the "
     "action taken, plus totals. Findings whose pcb_sha256 no longer matches the board are "
-    "still resolved and flagged possibly_stale. A finding's location is optional: one "
-    "with a null or missing location is resolved from its names and reported with "
-    "has_point false."
+    "still resolved and flagged possibly_stale. A finding's point is optional: one with a "
+    "null or missing point is resolved from its names and reported with has_point false."
 )
 
 MODES = ("select", "highlight", "both")
@@ -84,76 +85,74 @@ def _fingerprint(obj: Any) -> str:
 def split_input(findings: Any) -> tuple[list[Any], str | None]:
     """The finding list and the input board hash (``pcb_sha256``), if any.
 
-    ``findings`` may be a list of findings, one finding, the whole JSON object
-    a kct command printed, or that JSON as a string. In an envelope, every
-    top-level list whose elements all match a kicad-tools finding model is
-    taken; other lists (coverage tables, summaries) are left alone.
+    ``findings`` may be the whole JSON object a kct command printed (its
+    ``findings`` array is taken; the command's other keys are left alone),
+    a bare findings array, one finding, or that JSON as a string. An
+    envelope claiming a ``schema_version`` this tool does not read is
+    refused with the observed and supported versions.
     """
     if isinstance(findings, str):
         try:
             findings = json.loads(findings)
         except ValueError as e:
             raise E.invalid_argument(f"findings is not valid JSON: {e}") from None
+    input_hash = None
+    if isinstance(findings, dict):
+        input_hash = findings.get("pcb_sha256")
+        input_hash = input_hash if isinstance(input_hash, str) and input_hash else None
+        version = findings.get("schema_version")
+        if version is not None and version != F.SUPPORTED_SCHEMA_VERSION:
+            raise E.invalid_argument(
+                f"findings carries schema_version {version!r}; this tool reads schema "
+                f"version {F.SUPPORTED_SCHEMA_VERSION}.",
+                observed_schema_version=version,
+                supported_schema_version=F.SUPPORTED_SCHEMA_VERSION,
+            )
+        array = findings.get("findings")
+        if isinstance(array, list):
+            return array, input_hash
+        if F.is_finding(findings):
+            return [findings], input_hash
+        raise E.invalid_argument(
+            "findings is a JSON object whose 'findings' key is not an array of versioned "
+            "kicad-tools findings. Pass the output of a supported kct command printed with "
+            "--format json, a findings array, or one finding.",
+            observed_schema_version=version,
+            supported_schema_version=F.SUPPORTED_SCHEMA_VERSION,
+        )
     if isinstance(findings, list):
         return findings, None
-    if not isinstance(findings, dict):
-        if _matches(findings):
-            return [findings], None
-        raise E.invalid_argument(
-            "findings must be a list of kicad-tools findings or a kct --format json object.",
-            got=type(findings).__name__,
-        )
-    input_hash = findings.get("pcb_sha256")
-    input_hash = input_hash if isinstance(input_hash, str) and input_hash else None
-    if _matches(findings):
-        return [findings], input_hash
-    found: list[Any] = []
-    lists: list[str] = []
-    for key, value in findings.items():
-        if isinstance(value, list) and value and all(_matches(v) for v in value):
-            found.extend(value)
-            lists.append(key)
-    if not lists:
-        raise E.invalid_argument(
-            "findings is a JSON object with no list of findings that matches a kicad-tools "
-            "finding model. Pass the output of a supported kct command, or its finding list.",
-            models=F.models_status(),
-            upstream=F.G1_UPSTREAM,
-        )
-    return found, input_hash
+    if F.is_finding(findings):
+        return [findings], None
+    raise E.invalid_argument(
+        "findings must be a kct --format json object, a findings array, or one versioned "
+        "kicad-tools finding.",
+        got=type(findings).__name__,
+    )
 
 
-def _matches(finding: Any) -> bool:
-    try:
-        F.match(finding)
-    except F.Unrecognised:
-        return False
-    return True
-
-
-def extract_all(items: list[Any]) -> list[tuple[F.Adapter, list[F.Locator]]]:
+def extract_all(items: list[Any]) -> list[list[F.Locator]]:
     out = []
     for i, finding in enumerate(items):
         try:
-            adapter = F.match(finding)
+            locs = F.read(finding)
         except F.Unrecognised as u:
+            d = F.as_dict(finding)
             raise E.invalid_argument(
-                f"Finding {i} is not a recognised kicad-tools finding: {u.reason}.",
+                f"Finding {i} is not a versioned kicad-tools finding: {u.reason}.",
                 index=i,
-                candidates=u.candidates,
-                models=F.models_status(),
-                upstream=F.G1_UPSTREAM,
+                observed_schema_version=d.get("schema_version") if d else None,
+                supported_schema_version=F.SUPPORTED_SCHEMA_VERSION,
             ) from None
-        locs = F.locators(finding, adapter)
         if not locs:
+            rule = (F.as_dict(finding) or {}).get("rule_id")
             raise E.invalid_argument(
-                f"Finding {i} ({adapter.source}) carries no recognisable locator: no "
-                "reference, pad or net, and its point (location) is null, missing or "
-                "not an (x, y) pair.",
+                f"Finding {i}{f' ({rule})' if rule else ''} carries no locator: no "
+                "reference, pad or net, and its point and bbox are null, missing or "
+                "not well formed.",
                 index=i,
-                model=adapter.qualname,
             )
-        out.append((adapter, locs))
+        out.append(locs)
     return out
 
 
@@ -182,7 +181,6 @@ class BoardIndex:
     """The live board's names, for resolving locators (built from ``board_index``)."""
 
     def __init__(self, data: dict[str, Any]) -> None:
-        self.outline = data.get("outline_nm")
         self.refs: dict[str, list[dict[str, Any]]] = {}
         self.pads: dict[str, list[dict[str, Any]]] = {}
         self.pads_by_net: dict[str, list[dict[str, Any]]] = {}
@@ -214,11 +212,11 @@ class BoardIndex:
 
 def _candidates(index: BoardIndex, kind: str, name: str) -> list[tuple[str, Any]]:
     c: list[tuple[str, Any]] = []
-    if kind in ("ref", "name") and name in index.refs:
+    if kind == "ref" and name in index.refs:
         c.extend(("footprint", fp) for fp in index.refs[name])
-    if kind in ("pad", "name") and name in index.pads:
+    if kind == "pad" and name in index.pads:
         c.extend(("pad", p) for p in index.pads[name])
-    if kind in ("net", "name") and name in index.nets:
+    if kind == "net" and name in index.nets:
         c.append(("net", name))
     return c
 
@@ -231,13 +229,7 @@ def _miss_reason(index: BoardIndex, kind: str, name: str) -> tuple[str, str]:
         if ref in index.refs:
             return "pad_not_on_footprint", f"Footprint {ref} has no pad {num}."
         return "ref_not_on_board", f"No footprint {ref} on the board."
-    if kind == "net":
-        return "net_not_on_board", f"No net {name} on the board (renamed or removed?)."
-    return (
-        "not_on_board",
-        f"{name!r} matches no reference designator, REF.PAD or net on the board: it may "
-        "have been renamed or removed, or it is not a file-level reference (see G1).",
-    )
+    return "net_not_on_board", f"No net {name} on the board (renamed or removed?)."
 
 
 def _contains(box: dict[str, int] | None, x: int, y: int) -> bool:
@@ -259,34 +251,31 @@ def _on_layer(item: dict[str, Any], layer: str | None) -> bool:
     return item.get("layer") in (None, layer)
 
 
-def _point_nm(loc: F.Locator, index: BoardIndex) -> tuple[int, int] | None | str:
-    """The point in file-frame nm, or a reason string when it cannot be placed."""
-    x, y = loc.value
-    if loc.frame == "file":
-        return round(x * NM_PER_MM), round(y * NM_PER_MM)
-    if loc.frame == "board":
-        if index.outline is None:
-            return "no_board_outline"
-        return (
-            round(x * NM_PER_MM) + index.outline["x0_nm"],
-            round(y * NM_PER_MM) + index.outline["y0_nm"],
-        )
-    return "frame_not_stated"
+def _nm(v: float) -> int:
+    return round(v * NM_PER_MM)
+
+
+def _intersects(box: dict[str, int], x0: int, y0: int, x1: int, y1: int) -> bool:
+    t = TOLERANCE_NM
+    return (
+        box["x0_nm"] - t <= x1
+        and x0 <= box["x1_nm"] + t
+        and box["y0_nm"] - t <= y1
+        and y0 <= box["y1_nm"] + t
+    )
 
 
 NO_POINT_NOTE = (
-    "The finding carries no point: its location is null or missing (optional in "
-    "kicad-tools' models). It was resolved from its references, pads and nets only, "
-    "and no location was checked."
+    "The finding carries no point: its point is null or missing (optional in the "
+    "versioned finding format). It was resolved from its references, pads and nets "
+    "only, and no location was checked."
 )
 
 _POINT_MESSAGES = {
-    "frame_not_stated": "The kicad-tools model does not say which frame this point is in "
-    "(see G1), so it is not used.",
-    "no_board_outline": "The point is in the board frame, but the board has no "
-    "board-level Edge.Cuts outline to define that frame.",
     "empty_area": "No item's bounding box contains this point.",
 }
+
+BBOX_EMPTY_MESSAGE = "No item's bounding box overlaps this finding's region."
 
 
 def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
@@ -302,7 +291,7 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
             chosen.setdefault(item["id"], item)
 
     for loc in locs:
-        if loc.kind == "point":
+        if loc.kind in ("point", "bbox"):
             continue
         cands = _candidates(index, loc.kind, loc.value)
         if not cands:
@@ -352,19 +341,54 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
 
     named = bool(chosen) or bool(nets)
     points: list[dict[str, Any]] = []
+
+    # Upstream's bbox spans the locations a finding concerns; when it is
+    # supplied and no name resolved, it resolves instead of the point.
+    for loc in locs:
+        if loc.kind != "bbox":
+            continue
+        entry = loc.to_dict()
+        x0, y0, x1, y1 = (_nm(c) for c in loc.value)
+        entry["file_mm"] = {
+            "x0_mm": x0 / NM_PER_MM,
+            "y0_mm": y0 / NM_PER_MM,
+            "x1_mm": x1 / NM_PER_MM,
+            "y1_mm": y1 / NM_PER_MM,
+        }
+        hits = [
+            i
+            for i in index.all_items()
+            if i.get("bbox_nm")
+            and _intersects(i["bbox_nm"], x0, y0, x1, y1)
+            and _on_layer(i, loc.layer)
+        ]
+        entry["used_for"] = "resolve"
+        if not hits:
+            entry["reason"] = "empty_area"
+            unresolved.append(
+                {"locator": loc.to_dict(), "reason": "empty_area", "message": BBOX_EMPTY_MESSAGE}
+            )
+        else:
+            smallest = min(_area(i["bbox_nm"]) for i in hits)
+            for i in hits:
+                if _area(i["bbox_nm"]) == smallest:
+                    take(i)
+                    if i["kind"] == "footprint":
+                        footprints.add(i["ref"])
+                    elif i["kind"] == "pad" and pad_name(i):
+                        pads.add(pad_name(i))
+                    elif i.get("net"):
+                        nets.add(i["net"])
+            entry["resolved_to"] = len([i for i in hits if _area(i["bbox_nm"]) == smallest])
+            named = True
+        points.append(entry)
+
     for loc in locs:
         if loc.kind != "point":
             continue
         entry = loc.to_dict()
-        placed = _point_nm(loc, index)
-        if isinstance(placed, str):
-            entry.update(used_for="none", reason=placed)
-            if not named:
-                unresolved.append(
-                    {"locator": loc.to_dict(), "reason": placed, "message": _POINT_MESSAGES[placed]}
-                )
-            points.append(entry)
-            continue
+        x, y = loc.value
+        placed = (_nm(x), _nm(y))
         x, y = placed
         entry["file_mm"] = {"x_mm": x / NM_PER_MM, "y_mm": y / NM_PER_MM}
         if named:
@@ -535,7 +559,8 @@ def show_findings(
 
     per: list[dict[str, Any]] = []
     ids: list[str] = []
-    for i, (adapter, locs) in enumerate(extracted):
+    for i, locs in enumerate(extracted):
+        d = F.as_dict(items[i]) or {}
         r = resolve(index, locs)
         in_focus = i in focused
         if in_focus:
@@ -544,8 +569,9 @@ def show_findings(
         per.append(
             {
                 "index": i,
-                "source": adapter.source,
-                "model": adapter.qualname,
+                "rule_id": d.get("rule_id"),
+                "severity": d.get("severity"),
+                "waived": bool(d.get("waived", False)),
                 "status": r["status"],
                 "resolved": r["resolved"],
                 "net_basis": r["net_basis"],

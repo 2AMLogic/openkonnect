@@ -107,8 +107,13 @@ def test_footprints_round_trip_through_kct_check(live_session, board):
 
     report = _kct(board.path, "check", "--format", "json")
     wanted = set(before["footprints"])
-    report["violations"] = [v for v in report["violations"] if set(v["items"]) <= wanted]
-    assert report["violations"]
+    # "check these parts": keep the findings whose refs are all selected refs,
+    # with their violation entries (both arrays are present; only findings is
+    # read).
+    keep = [i for i, f in enumerate(report["findings"]) if f["refs"] and set(f["refs"]) <= wanted]
+    assert keep
+    report["findings"] = [report["findings"][i] for i in keep]
+    report["violations"] = [report["violations"][i] for i in keep]
 
     r = live_session.run_tool(lambda s: show_findings(s, report, mode="both", zoom=True))
     assert r["ok"], r
@@ -123,22 +128,28 @@ def test_footprints_round_trip_through_kct_check(live_session, board):
         assert abs(pos["y_mm"] - v["location"][1]) <= 1e-3
 
 
-def test_pads_and_net_round_trip_through_kct_net_status(live_session, board):
-    _select(live_session, board, ["R1.1", "R2.1"])
+def test_pad_and_net_round_trip_through_kct_net_status(live_session, board):
+    # The finding names the footprint (refs), the stranded pad (pads) and the
+    # net (nets), so all three resolve and must be selected beforehand. GND
+    # is incomplete on the fixture (one stranded pad); complete nets emit no
+    # findings.
+    _select(live_session, board, ["R3", "R3.2"])
     before = _selection(live_session, geometry=True)
-    assert before["pads"] == ["R1.1", "R2.1"]
-    assert before["nets"] == ["VIN"]
+    assert before["footprints"] == ["R3"]
+    assert before["pads"] == ["R3.2"]
+    assert before["nets"] == ["GND"]
 
-    report = _kct(board.path, "net-status", "--format", "json", "--net", "VIN")
+    report = _kct(board.path, "net-status", "--format", "json", "--net", "GND")
+    assert report["findings"]
     r = live_session.run_tool(lambda s: show_findings(s, report))
     assert r["ok"], r
     after = _selection(live_session)
     assert not _diff(_sets(before), _sets(after)), _diff(_sets(before), _sets(after))
+    # The finding's point is the stranded pad's position, in the file frame.
     points = r["findings"][0]["points"]
-    for name in before["pads"]:
-        pos = before["geometry"][name]["position_mm"]
-        assert any(
-            abs(p["file_mm"]["x_mm"] - pos["x_mm"]) <= 1e-3
-            and abs(p["file_mm"]["y_mm"] - pos["y_mm"]) <= 1e-3
-            for p in points
-        ), f"no net-status point within 1 um of {name}"
+    pos = before["geometry"]["R3.2"]["position_mm"]
+    assert any(
+        abs(p["file_mm"]["x_mm"] - pos["x_mm"]) <= 1e-3
+        and abs(p["file_mm"]["y_mm"] - pos["y_mm"]) <= 1e-3
+        for p in points
+    ), (points, pos)
