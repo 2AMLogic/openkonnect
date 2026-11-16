@@ -1,4 +1,5 @@
-"""Docs vs code: spec C-3 and the README tool table must match the server (#14)."""
+"""Docs vs code: spec C-3, the README tool table and the kipy confinement
+must match the code (#14, #105)."""
 
 from __future__ import annotations
 
@@ -168,3 +169,78 @@ def test_unparsable_readme_table_fails_as_a_parse_error():
     rows = _readme_tool_rows("| Tool | Spec |\n|------|------|\n")
     with pytest.raises(AssertionError, match="README tool table was not parsed"):
         _assert_rows_parsed(rows)
+
+
+KIPY_IMPORT = re.compile(r"^\s*(?:from|import)\s+kipy\b", re.M)
+SRC_ROOT = ROOT / "src" / "openkonnect"
+
+
+def _kipy_importers(src_root: Path = SRC_ROOT) -> set[str]:
+    """Paths (relative to ``src/openkonnect/``) of modules importing kipy anywhere.
+
+    The pattern allows leading whitespace on purpose: every kipy import in
+    scope is function-local (`session.py`'s error mapping at 8 spaces, the
+    backend modules' helpers inside functions), so a `^from kipy` anchor
+    would match none of them and wave a violating repo through.
+    """
+    return {
+        str(p.relative_to(src_root))
+        for p in sorted(src_root.rglob("*.py"))
+        if KIPY_IMPORT.search(p.read_text(encoding="utf-8"))
+    }
+
+
+def _assert_kipy_importers_parsed(importers: set[str]) -> None:
+    assert importers, (
+        "the kipy-import guard matched nothing under src/openkonnect/: "
+        "kipy is gone (retire the guard) or the pattern broke (it must allow "
+        "indented, function-local imports)"
+    )
+
+
+def _stray_kipy_importers(importers: set[str]) -> list[str]:
+    """Importers outside the documented shape: top-level `backend*` modules plus `session.py`."""
+    return sorted(
+        m for m in importers if "/" in m or not (m.startswith("backend") or m == "session.py")
+    )
+
+
+def test_kipy_imports_confined_to_backend_modules_and_session():
+    importers = _kipy_importers()
+    _assert_kipy_importers_parsed(importers)
+    stray = _stray_kipy_importers(importers)
+    assert not stray, (
+        "modules outside the backend layer import kipy: "
+        + ", ".join(stray)
+        + " — docs/ipc-client.md states kipy is confined to the backend* "
+        "modules plus session.py's error mapping; reconcile the doc or move "
+        "the imports"
+    )
+
+
+def test_kipy_import_pattern_matches_indented_and_plain_imports():
+    assert KIPY_IMPORT.search("from kipy import KiCad\n")
+    assert KIPY_IMPORT.search("import kipy\n")
+    assert KIPY_IMPORT.search("        from kipy.errors import ApiError\n")
+    assert KIPY_IMPORT.search("\timport kipy.proto.common\n")
+
+
+def test_kipy_import_pattern_ignores_kipy_prefixed_module_names():
+    assert not KIPY_IMPORT.search("import kipy_helpers\n")
+    assert not KIPY_IMPORT.search("from kipy_helpers import shim\n")
+
+
+def test_stray_rule_accepts_backend_siblings_and_session():
+    assert _stray_kipy_importers({"backend.py", "backend_outline.py", "session.py"}) == []
+
+
+def test_stray_rule_reports_tools_and_top_level_strays():
+    stray = _stray_kipy_importers(
+        {"backend.py", "session.py", "tools/list_copper.py", "kicad_text.py"}
+    )
+    assert stray == ["kicad_text.py", "tools/list_copper.py"]
+
+
+def test_kipy_guard_fails_loud_when_pattern_matches_nothing():
+    with pytest.raises(AssertionError, match="matched nothing"):
+        _assert_kipy_importers_parsed(set())

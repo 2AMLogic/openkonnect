@@ -34,13 +34,14 @@ code").
 
 ## How it is used
 
-Only `src/openkonnect/backend.py` imports `kipy`. It wraps it in a small
-`IpcBackend` interface, and the session layer (`session.py`) maps kipy's
-exceptions to C-3 errors. The tests replace the backend with a fake that
+Within `src/openkonnect/`, only the `backend*` modules and `session.py`
+import `kipy`. The backend modules wrap it behind a small `IpcBackend`
+interface, and the session layer maps kipy's exceptions to C-3 errors. No
+tool module touches it. The tests replace the backend with a fake that
 raises the real kipy exception types. The backend reads two private kipy
-attributes (`KiCad._client`, `KiCadClient._kicad_token`) for the instance token and for
-closing the connection. Both reads are defensive and should be rechecked when
-the version range is raised.
+attributes (`KiCad._client`, `KiCadClient._kicad_token`) for the instance
+token and for closing the connection. Both reads are defensive and should
+be rechecked when the version range is raised.
 
 ## Rejected alternatives
 
