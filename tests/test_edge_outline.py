@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from kicad_tools.analysis.net_status import NetStatus, PadInfo
+from kicad_tools.findings import Finding
 from kipy.board_types import (
     BoardArc,
     BoardBezier,
@@ -425,22 +425,28 @@ def test_unknown_geometry_reaches_the_caller_as_internal_error():
     assert r["error"]["details"]["shape_id"] == "e5c1-unknown"
 
 
-def test_board_frame_point_lands_on_the_file_frame_pad():
+def test_file_frame_point_lands_on_the_file_frame_pad():
+    # Versioned findings carry their point already in the file frame, so it
+    # lands on the pad with no outline involvement; the selection still
+    # reports the outline as the frame offset (LAY-08).
     fake = EditorFake()
     fake.index = dict(fake.index, outline_nm=_edge_outline(_fixture_board())[1])
-    status = NetStatus(
-        net_number=1,
-        net_name="VIN",
-        connected_pads=[
-            PadInfo(reference="R1", pad_number="1", position=(9.0, 10.0), is_connected=True),
-        ],
+    f = Finding(
+        rule_id="net_status.incomplete",
+        severity="info",
+        message="",
+        refs=["R1"],
+        pads=["R1.1"],
+        nets=["VIN"],
+        point=[109.0, 60.0],
     )
-    r = make_session(fake).run_tool(lambda s: show_findings(s, [status]))
+    r = make_session(fake).run_tool(lambda s: show_findings(s, [f]))
     assert r["ok"] is True, r
     [f] = r["findings"]
     [p] = f["points"]
-    assert p["frame"] == "board"
+    assert p["frame"] == "file"
     assert p["file_mm"] == {"x_mm": 109.0, "y_mm": 60.0}
+    assert p["within_resolved_items"] is True
     offset = r["selection"]["frame_offset"]
     assert (offset["x_mm"], offset["y_mm"]) == (100.0, 50.0)
     assert "stroke" in offset["basis"]

@@ -73,14 +73,12 @@ tool table; `src/openkonnect/tools/`). CI runs lint, tests on Python 3.10 and
 
 Each is one PR built from an existing spec entry. Per
 [spec/README.md](spec/README.md), the implementer must not be that entry's
-spec author. `board_outline` is already being built (#88, `loom:building`)
-and the kicad-tools catch-up is #89 (`loom:curated`); the rest have no issue
-yet.
+spec author. `board_outline` is already being built (#88, `loom:building`);
+the rest have no issue yet.
 
 | What | Done when | Blocked by |
 |------|-----------|------------|
 | `board_outline` (LAY-08): closed polygons, extents, frame offset, grid and drill origins — in progress as #88 | Tool registered; fake-backend unit tests; a `tests/live/` test; README row; spec entry marked built; `tests/test_doc_drift.py` passes; an open or missing outline is reported, never a rectangle | nothing |
-| Catch up with kicad-tools (#89): `pyproject.toml` pins `>=0.24,<0.25` and `uv.lock` resolves 0.24.0, while upstream is at v0.29.0 and has closed G1, G2 and G4 (kicad-tools #8015, #8016, #8017) | Pin and `uv.lock` raised to the current release, `uv run pytest -rs` green; the gap tables in `docs/architecture.md` and the spec say which release closed each gap | nothing |
 | `snapshot_board` (SES-11): the open board, unsaved changes included, as a temporary `.kicad_pcb` with project files beside it | Same checklist as `board_outline`; the saved file's hash is unchanged after the call | nothing |
 | `select_instance` (SES-03) | Same checklist; a different instance answering later fails with `instance_changed` | nothing |
 | Live test for `list_zones` | `tests/live/test_live_list_zones.py` exists, is skipped without `--live`, and names the fixture board it needs | nothing |
@@ -92,7 +90,7 @@ yet.
 | `compare_with_disk` (SES-12), built on `kct pcb diff` | Tool registered with tests; its temporary directory is gone after every call | `snapshot_board` |
 | `view_state` (SES-16, read half: active and visible layers) | Tool registered with tests; the viewport is not reported | `layers_and_stackup`, so both tools name layers the same way |
 | `design_rules` (LAY-09), file-level on KiCad 10 through kicad-tools | Tool registered; the result carries the C-8 note that unsaved rule edits are not visible | the kicad-tools pin raise, so it is written against current `kct` output |
-| Adopt the versioned finding format in `show_findings` (G1) | `show_findings` reads the versioned format and refuses an unknown version, with a test | the kicad-tools pin raise |
+| Adopt the versioned finding format in `show_findings` (G1) | `show_findings` reads the versioned format and refuses an unknown version, with a test | delivered by #111 |
 | Tick the Phase 1 exit criteria | Every Phase 1 spec entry is marked built or deferred with a reason, and each has a recorded live run | the Now items, and #74 |
 
 ## Later

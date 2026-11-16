@@ -490,9 +490,10 @@ control, and grouping edits into transactions. Every entry here is live-editor.
 ### SES-09 `show_findings`
 - **Class:** live-editor · **kicad-tools:** partial. The findings come from
   `kct check`, `kct drc`, `kct detect-mistakes`, `kct net-status` and the
-  `measure_clearance` MCP tool with `--format json`. A single stable finding
-  schema is an upstream gap (G1) · **KiCad:** 10.0 for selecting; zoom and
-  highlight are not documented (see below) · **From:** #5
+  `measure_clearance` MCP tool with `--format json`, in kicad-tools' shared,
+  versioned finding format (G1, resolved upstream in 0.25.0) · **KiCad:**
+  10.0 for selecting; zoom and highlight are not documented (see below) ·
+  **From:** #5
 - **Purpose:** take kicad-tools' JSON findings and point the user at the items
   they concern in the live editor.
 - **Inputs:**
@@ -500,10 +501,10 @@ control, and grouping edits into transactions. Every entry here is live-editor.
   - `mode`: select, highlight or both;
   - `focus`: all, one index, or next/previous through the list;
   - `zoom`: true or false.
-- **Interpretation:** the tool reads kicad-tools' own output models to find
-  each finding's locators: refs, `REF.PAD`, net names, a point or box
-  (mm, file frame), and a layer. This spec does not define or copy a finding
-  schema. If kicad-tools publishes a stable one (G1), the tool uses it.
+- **Interpretation:** the tool reads each finding's explicit locators —
+  refs, `REF.PAD` names, net names, a point or box (mm, file frame), and a
+  layer — from kicad-tools' published, versioned finding schema (G1), and
+  refuses a payload whose `schema_version` it does not read.
 - **Outputs:** for each finding:
   - the items it resolved to;
   - the locators that did not resolve, each with a reason (reference not on
@@ -511,11 +512,12 @@ control, and grouping edits into transactions. Every entry here is live-editor.
   - the action taken.
 
   Plus totals.
-- **Optional location (#5):** a finding's point is optional in kicad-tools'
-  models, and `kct check` on kicad-tools `main` emits `location: null`. Such
-  a finding is resolved from its refs, pads and nets alone and reported with
-  `has_point: false` and a `point_note`; no point is invented. A finding with
-  neither a point nor a name is `invalid_argument`.
+- **Optional location (#5):** a finding's `point` is optional, and is null
+  when the emitter could not place it. Such a finding is resolved from its
+  refs, pads and nets alone and reported with `has_point: false` and a
+  `point_note`; no point is invented. A finding with neither a point, a bbox
+  nor a name is reported `unresolved` with a `no_locator` reason; the rest
+  of the payload is still resolved.
 - **KiCad 10 notes:**
   - Selecting items is documented.
   - Zooming to items and highlighting a net are not documented. Those parts

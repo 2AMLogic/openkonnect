@@ -113,20 +113,24 @@ def test_layers_and_stackup_schema_has_no_inputs():
 
 
 def test_show_findings_over_mcp_accepts_a_kct_json_object():
-    from kicad_tools.validate.violations import DRCViolation
+    from kicad_tools.findings import Finding
 
     from .conftest import EditorFake
 
-    v = DRCViolation(
-        rule_id="courtyard_missing", severity="warning", message="", items=("R2",)
-    ).to_dict()
+    f = Finding(rule_id="courtyard_missing", severity="warning", message="", refs=["R2"])
+    payload = {
+        "schema_version": f.to_dict()["schema_version"],
+        "findings": [f.to_dict()],
+        # a real payload carries the command's legacy keys alongside findings
+        "violations": [{"deliberately": "not a finding"}],
+    }
     fake = EditorFake()
 
     async def go():
         server = build_server(make_session(fake))
         async with create_connected_server_and_client_session(server._mcp_server) as client:
             return await client.call_tool(
-                "show_findings", {"findings": {"violations": [v]}, "mode": "both", "focus": 0}
+                "show_findings", {"findings": payload, "mode": "both", "focus": 0}
             )
 
     result = anyio.run(go)
