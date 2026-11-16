@@ -516,7 +516,8 @@ control, and grouping edits into transactions. Every entry here is live-editor.
   when the emitter could not place it. Such a finding is resolved from its
   refs, pads and nets alone and reported with `has_point: false` and a
   `point_note`; no point is invented. A finding with neither a point, a bbox
-  nor a name is `invalid_argument`.
+  nor a name is reported `unresolved` with a `no_locator` reason; the rest
+  of the payload is still resolved.
 - **KiCad 10 notes:**
   - Selecting items is documented.
   - Zooming to items and highlighting a net are not documented. Those parts

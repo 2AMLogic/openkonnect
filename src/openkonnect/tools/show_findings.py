@@ -589,7 +589,7 @@ def show_findings(
         in_focus = i in focused
         if in_focus:
             ids.extend(x for x in r["ids"] if x not in ids)
-        has_point = bool(r["points"])
+        has_point = any(p.get("kind") == "point" for p in r["points"])
         per.append(
             {
                 "index": i,

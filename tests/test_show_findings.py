@@ -464,6 +464,8 @@ def test_bbox_without_point_resolves_the_smallest_overlapping_items():
     [f] = r["findings"]
     assert f["status"] == "resolved"
     assert f["resolved"]["pads"] == ["R3.1", "R3.2"]
+    assert f["has_point"] is False
+    assert "point_note" in f
     [p] = f["points"]
     assert p["used_for"] == "resolve" and p["resolved_to"] == 2
 
