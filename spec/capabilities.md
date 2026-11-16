@@ -1446,8 +1446,8 @@ made live.
 
 ### REV-07 `recheck_touched`
 - **Class:** live-editor (it knows what an edit touched) · **kicad-tools:**
-  upstream gap (G2: a check limited to a region or a set of references; `kct
-  check --only` limits *which* checks run, not *where*) · **KiCad:** 10.0 ·
+  already in kicad-tools (`kct check --bbox/--refs/--nets`, kicad-tools 0.25.0,
+  kicad-tools #8016; formerly gap G2, now resolved upstream) · **KiCad:** 10.0 ·
   **From:** ROADMAP Phase 4
 - **Purpose:** after an agent edit, check only the area that the edit changed,
   and report the findings that are new or resolved compared with before the
@@ -1455,8 +1455,9 @@ made live.
 - **Inputs:** a change ID (C-6 or SES-17), or a list of items.
 - **Outputs:** new findings, resolved findings, and the unchanged count.
   Always `signoff: false`.
-- **Failure modes:** until G2 lands, the tool checks the whole board and says
-  so.
+- **Failure modes:** the tool scopes checks to the touched area using the
+  upstream scoping (`kct check --bbox/--refs/--nets`) and says so when a check
+  has to cover the whole board.
 - **Sources:** P-T7.
 
 ### REV-08 `board_parity`
@@ -1513,13 +1514,14 @@ made live.
 - **Sources:** P-T5, P-T7.
 
 ### MFG-03 Other output formats
-- **Class:** file-level · **kicad-tools:** upstream gap (G4: PDF, SVG plots,
-  STEP and other 3D, IPC-2581, ODB++ are not wrapped by kicad-tools; `kct
-  render` covers previews only) · **KiCad:** n/a · **From:** P-C2 and P-K1 tool
+- **Class:** file-level · **kicad-tools:** already in kicad-tools (`kct
+  export-formats`, kicad-tools 0.25.0, kicad-tools #8017; formerly gap G4, now
+  resolved upstream) · **KiCad:** n/a · **From:** P-C2 and P-K1 tool
   catalogues (export)
 - **Purpose:** documentation, mechanical and alternative fabrication outputs.
-- **Status:** **deferred** until kicad-tools covers it, per #6. This spec does
-  not wrap `kicad-cli` directly for these.
+- **Status:** **deferred** — nobody has built this entry yet. The upstream
+  coverage it waited on exists (`kct export-formats`, kicad-tools 0.25.0);
+  per #6 this spec still does not wrap `kicad-cli` directly for these.
 - **Sources:** P-C2, P-K1, P-T6.
 
 ### MFG-04 `fab_cost_estimate`

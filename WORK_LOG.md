@@ -5,6 +5,14 @@ Maintained by the Loom Guide role; entries are appended automatically.
 
 ### 2026-11-16
 
+- **PR #116**: docs: align REV-07 and MFG-03 with the resolved G2/G4 gap rows
+- **PR #112**: docs: restate kipy confinement as a rule, guarded in test_doc_drift
+- **PR #110**: refactor: use shared tools/common check_str in list_copper
+- **PR #109**: docs: state that total_thickness_mm includes disabled stackup rows
+- **Issue #114** (closed): spec/capabilities.md: REV-07 and MFG-03 still call G2/G4 open gaps, contradicting the file's own gap table
+- **Issue #105** (closed): docs/ipc-client.md: "Only backend.py imports kipy" is no longer true
+- **Issue #102** (closed): list_copper carries a third copy of _check_str that #90's consolidation did not reach
+- **Issue #99** (closed): layers_and_stackup: total_thickness_mm counts disabled stackup rows
 - **PR #106**: docs(list_copper): widen via_type doc set, fix live-test coverage claim, state netless-totals rule
 - **Issue #94** (closed): list_copper: three small doc/coverage gaps found reviewing PR #93 (LAY-05)
 - **PR #101**: chore: bump kicad-tools pin to 0.29 and mark G1/G2/G4 resolved upstream

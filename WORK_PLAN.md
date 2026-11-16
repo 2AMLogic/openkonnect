@@ -27,15 +27,13 @@ _None._
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-_None._
+- **#113**: Re-derive the kicad-tools 0.24 black-box `kct route` claims against the locked 0.29
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
-- **#99**: layers_and_stackup: total_thickness_mm counts disabled stackup rows
-- **#102**: list_copper carries a third copy of _check_str that #90's consolidation did not reach
-- **#105**: docs/ipc-client.md: "Only backend.py imports kipy" is no longer true
+- **#111**: Adopt kicad-tools' versioned Finding format in show_findings and retire the G1 scaffolding
 
 ## PRs Awaiting Review
 
@@ -47,19 +45,13 @@ _None._
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-- **#109**: docs: state that total_thickness_mm includes disabled stackup rows
-- **#110**: refactor: use shared tools/common check_str in list_copper
-- **#112**: docs: restate kipy confinement as a rule, guarded in test_doc_drift
+_None._
 
 ## Proposed
 
 Issues carrying `loom:curated`.
 
-- **#99**: layers_and_stackup: total_thickness_mm counts disabled stackup rows *(curated)*
-- **#102**: list_copper carries a third copy of _check_str that #90's consolidation did not reach *(curated)*
-- **#105**: docs/ipc-client.md: "Only backend.py imports kipy" is no longer true *(curated)*
 - **#111**: Adopt kicad-tools' versioned Finding format in show_findings and retire the G1 scaffolding *(curated)*
-- **#114**: spec/capabilities.md: REV-07 and MFG-03 still call G2/G4 open gaps, contradicting the file's own gap table *(curated)*
 
 ## Proposed (Architect / Hermit)
 
@@ -76,11 +68,11 @@ _None._
 | Operator merge-risk holds | 0 |
 | Very important | 1 |
 | Important | 0 |
-| Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 3 |
+| Ready (`loom:issue`) | 1 |
+| In Progress (`loom:building`) | 1 |
 | PRs awaiting review | 0 |
-| Approved PRs awaiting merge | 3 |
-| Curated | 5 |
+| Approved PRs awaiting merge | 0 |
+| Curated | 1 |
 | Architect / Hermit proposals | 1 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
