@@ -21,8 +21,7 @@ from ..session import (
     read_board_text,
     text_sha256,
 )
-from .common import inferred_schematic, open_boards_or_fail
-from .save_before_external_write import parse_documents
+from .common import inferred_schematic, open_boards_or_fail, parse_documents
 
 DESCRIPTION = (
     "After a file-based tool (kct) wrote a board that is open in KiCad, reload the editor "

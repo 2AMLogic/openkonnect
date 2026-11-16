@@ -93,6 +93,38 @@ def check_str(name: str, value: Any) -> str | None:
     return value
 
 
+_KINDS = ("board", "schematic", "all")
+
+
+def parse_documents(documents: Any) -> tuple[bool, bool]:
+    """``(want_board, want_schematic)`` from a ``documents`` argument.
+
+    ``None`` means every document KiCad reports open, which on KiCad 10 is the
+    board only: the schematic's open state is unknown, so it is included only
+    when asked for (``"schematic"`` or ``"all"``).
+    """
+    from .. import errors as E
+
+    if documents is None:
+        return True, False
+    items = [documents] if isinstance(documents, str) else documents
+    if not isinstance(items, (list, tuple)) or not items:
+        raise E.invalid_argument(
+            "documents must be 'board', 'schematic', 'all' or a list of those.",
+            got=documents,
+        )
+    want_board = want_sch = False
+    for item in items:
+        if item not in _KINDS:
+            raise E.invalid_argument(
+                "documents must be 'board', 'schematic', 'all' or a list of those.",
+                got=item,
+            )
+        want_board |= item in ("board", "all")
+        want_sch |= item in ("schematic", "all")
+    return want_board, want_sch
+
+
 # -- coordinates (spec C-1) ----------------------------------------------------
 
 

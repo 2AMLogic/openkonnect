@@ -12,7 +12,7 @@ from typing import Any
 
 from .. import errors as E
 from ..session import Session
-from .common import frame_offset, mm, parse_box, point_in_box, point_mm, require_board
+from .common import board_point_mm, frame_offset, parse_box, point_in_box, point_mm, require_board
 
 DESCRIPTION = (
     "List the footprints on the open board, live (unsaved changes included): refdes, "
@@ -65,11 +65,7 @@ def describe_footprint(fp: dict[str, Any], offset_nm: dict[str, int] | None) -> 
         "position_mm": pos,
     }
     if pos is not None and offset_nm is not None:
-        entry["position_board_mm"] = {
-            "frame": "board",
-            "x_mm": mm(fp["position_nm"]["x"] - offset_nm["x0_nm"]),
-            "y_mm": mm(fp["position_nm"]["y"] - offset_nm["y0_nm"]),
-        }
+        entry["position_board_mm"] = board_point_mm(fp["position_nm"], offset_nm)
     entry["rotation_deg"] = fp.get("orientation_deg")
     entry["side"] = side_of(fp.get("layer"))
     entry["layer"] = fp.get("layer")

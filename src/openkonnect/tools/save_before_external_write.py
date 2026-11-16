@@ -28,7 +28,7 @@ from ..session import (
     sha256_bytes,
     text_sha256,
 )
-from .common import inferred_schematic, open_boards_or_fail
+from .common import inferred_schematic, open_boards_or_fail, parse_documents
 
 DESCRIPTION = (
     "Before a file-based tool (kct) touches a board open in KiCad, make the file on disk "
@@ -44,35 +44,6 @@ _SCHEMATIC_REASON = (
     "KiCad 10's IPC API cannot inspect, save or reload the schematic (the schematic "
     "document API is KiCad 11)."
 )
-
-_KINDS = ("board", "schematic", "all")
-
-
-def parse_documents(documents: Any) -> tuple[bool, bool]:
-    """``(want_board, want_schematic)`` from a ``documents`` argument.
-
-    ``None`` means every document KiCad reports open, which on KiCad 10 is the
-    board only: the schematic's open state is unknown, so it is included only
-    when asked for (``"schematic"`` or ``"all"``).
-    """
-    if documents is None:
-        return True, False
-    items = [documents] if isinstance(documents, str) else documents
-    if not isinstance(items, (list, tuple)) or not items:
-        raise E.invalid_argument(
-            "documents must be 'board', 'schematic', 'all' or a list of those.",
-            got=documents,
-        )
-    want_board = want_sch = False
-    for item in items:
-        if item not in _KINDS:
-            raise E.invalid_argument(
-                "documents must be 'board', 'schematic', 'all' or a list of those.",
-                got=item,
-            )
-        want_board |= item in ("board", "all")
-        want_sch |= item in ("schematic", "all")
-    return want_board, want_sch
 
 
 def schematic_unsupported(path: str | None) -> OpenKonnectError:
