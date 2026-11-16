@@ -17,6 +17,7 @@ from .. import errors as E
 from ..session import Session
 from .common import (
     board_point_mm,
+    check_str,
     frame_offset,
     is_layer,
     mm,
@@ -41,14 +42,6 @@ DESCRIPTION = (
     "keeps an item when any point it reports is inside), locked_only. A filter "
     "matching nothing is an empty list; an unknown layer is invalid_argument."
 )
-
-
-def _check_str(name: str, value: Any) -> str | None:
-    if value is None or value == "":
-        return None
-    if not isinstance(value, str):
-        raise E.invalid_argument(f"{name} must be a string.", **{name: value})
-    return value
 
 
 def points_nm(item: dict[str, Any]) -> list[dict[str, int]]:
@@ -155,8 +148,8 @@ def list_copper(
     box: Any = None,
     locked_only: bool = False,
 ) -> dict[str, Any]:
-    net = _check_str("net", net)
-    layer = _check_str("layer", layer)
+    net = check_str("net", net)
+    layer = check_str("layer", layer)
     if layer is not None and not is_layer(layer):
         raise E.invalid_argument(
             f"Unknown layer {layer!r}. Use a canonical name such as 'F.Cu', 'In1.Cu' or 'B.Cu'.",

@@ -238,8 +238,11 @@ def test_a_known_inner_or_user_layer_is_accepted():
 
 
 def test_non_string_filter_is_invalid_argument():
-    r = run(EditorFake(), net=5)
-    assert r["ok"] is False and r["error"]["code"] == "invalid_argument"
+    for bad in ({"net": 5}, {"layer": 5}):
+        fake = EditorFake()
+        r = run(fake, **bad)
+        assert r["ok"] is False and r["error"]["code"] == "invalid_argument", bad
+        assert "copper" not in fake.calls, bad
 
 
 def test_non_bool_locked_only_is_invalid_argument():
