@@ -3,6 +3,17 @@
 Chronological record of merged pull requests and closed issues, newest first.
 Maintained by the Loom Guide role; entries are appended automatically.
 
+### 2026-11-16
+
+- **PR #106**: docs(list_copper): widen via_type doc set, fix live-test coverage claim, state netless-totals rule
+- **Issue #94** (closed): list_copper: three small doc/coverage gaps found reviewing PR #93 (LAY-05)
+- **PR #101**: chore: bump kicad-tools pin to 0.29 and mark G1/G2/G4 resolved upstream
+- **Issue #89** (closed): Raise the kicad-tools pin to the current release and record gaps G1, G2, G4 as closed upstream
+- **PR #108**: refactor: move parse_documents into tools/common and route position_board_mm through board_point_mm
+- **Issue #97** (closed): Finish the tools/common consolidation: parse_documents import direction and the duplicated C-1 board-frame conversion
+- **PR #103**: refactor: split board-outline geometry out of backend.py into backend_outline
+- **Issue #100** (closed): Split board-outline geometry out of backend.py (1424 lines)
+
 ### 2026-11-15
 
 - **Issue #88** (closed): Implement LAY-08 board_outline (closed polygons, extents, frame offset, origins)
