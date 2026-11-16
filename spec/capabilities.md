@@ -910,11 +910,15 @@ state, including unsaved changes. Every edit follows C-6.
   `locked`. A track or arc has `layer`, `width_mm` and `length_mm` — an arc's
   **true arc length**, not its chord; a via instead has `layers` (its drill
   span), `diameter_mm` (`null` if KiCad reports no copper layer for it),
-  `drill_mm`, `via_type` (`through`, `blind_buried` or `micro`) and
+  `drill_mm`, `via_type` (`through`, `blind_buried`, `micro`, `blind` or
+  `buried` — the last two new in KiCad 10 — or `unknown` for an unrecognised
+  type) and
   `length_mm: null`, since a via spans layers rather than running along one.
   `total_length_mm_by_net` totals the **filtered** items, not the whole board,
   and `filters` is echoed beside it; a named net that kept only vias totals
-  `0.0`. A filter that matches nothing is an empty list.
+  `0.0`. Copper KiCad reports with no net is still listed in `copper` but
+  contributes to no entry, so the totals do not sum to the board's copper
+  length. A filter that matches nothing is an empty list.
 
 ### LAY-06 `list_zones`
 - **Class:** live-editor · **kicad-tools:** file-level equivalent already in
