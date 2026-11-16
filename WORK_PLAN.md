@@ -28,12 +28,13 @@ _None._
 Human-approved issues ready for implementation (`loom:issue`).
 
 - **#113**: Re-derive the kicad-tools 0.24 black-box `kct route` claims against the locked 0.29
+- **#119**: show_findings: point_note says a bbox-resolved finding was 'resolved from its references, pads and nets only'
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
-- **#111**: Adopt kicad-tools' versioned Finding format in show_findings and retire the G1 scaffolding
+_None._
 
 ## PRs Awaiting Review
 
@@ -51,7 +52,7 @@ _None._
 
 Issues carrying `loom:curated`.
 
-- **#111**: Adopt kicad-tools' versioned Finding format in show_findings and retire the G1 scaffolding *(curated)*
+- **#119**: show_findings: point_note says a bbox-resolved finding was 'resolved from its references, pads and nets only' *(curated)*
 
 ## Proposed (Architect / Hermit)
 
@@ -68,8 +69,8 @@ _None._
 | Operator merge-risk holds | 0 |
 | Very important | 1 |
 | Important | 0 |
-| Ready (`loom:issue`) | 1 |
-| In Progress (`loom:building`) | 1 |
+| Ready (`loom:issue`) | 2 |
+| In Progress (`loom:building`) | 0 |
 | PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 0 |
 | Curated | 1 |
