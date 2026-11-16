@@ -5,6 +5,9 @@ Maintained by the Loom Guide role; entries are appended automatically.
 
 ### 2026-11-15
 
+- **Issue #88** (closed): Implement LAY-08 board_outline (closed polygons, extents, frame offset, origins)
+- **Issue #87** (closed): Implement LAY-07 layers_and_stackup (enabled layers, names and physical stackup)
+- **Issue #86** (closed): Implement LAY-05 list_copper (tracks, arcs and vias by net, layer or box)
 - **Issue #90** (closed): Consolidate three duplicated board-acquisition and validation helpers into tools/common.py
 - **PR #96**: refactor: write the SES-07 board-acquisition sequence once in tools/common
 - **PR #95**: feat: add board_outline (LAY-08), chaining Edge.Cuts into closed polygons
