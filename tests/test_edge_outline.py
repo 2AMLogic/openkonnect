@@ -28,7 +28,7 @@ from kipy.geometry import Box2, PolygonWithHoles, PolyLine, PolyLineNode, Vector
 from kipy.proto.board.board_types_pb2 import BoardLayer
 from kipy.proto.common.types import KiCadObjectType
 
-from openkonnect.backend import _bezier_extent, _edge_outline, _outline
+from openkonnect.backend_outline import _bezier_extent, _edge_outline, _outline
 from openkonnect.errors import ErrorCode, OpenKonnectError
 from openkonnect.tools.board_outline import board_outline, describe_outline
 from openkonnect.tools.board_summary import board_summary
