@@ -1555,10 +1555,10 @@ stay stable; it is not to be filed.
 
 | ID | Gap | Needed by |
 |----|-----|-----------|
-| G1 | A stable, versioned finding format shared by the commands that emit findings | SES-09, SES-10 |
-| G2 | A check limited to a region or a set of references | REV-07 |
+| G1 | A stable, versioned finding format shared by the commands that emit findings. **Resolved upstream:** `Finding` locators in net-status JSON and `measure_clearance` (kicad-tools 0.25.0, kicad-tools #8015) | SES-09, SES-10 |
+| G2 | A check limited to a region or a set of references. **Resolved upstream:** `kct check --bbox/--refs/--nets` (kicad-tools 0.25.0, kicad-tools #8016) | REV-07 |
 | G3 | A semantic diff between two board files. **Resolved upstream:** `kct pcb diff` (kicad-tools 0.24.0, kicad-tools #6417) | SES-12 |
-| G4 | Plot, 3D and alternative fabrication exports | MFG-03 |
+| G4 | Plot, 3D and alternative fabrication exports. **Resolved upstream:** `kct export-formats` (kicad-tools 0.25.0, kicad-tools #8017) | MFG-03 |
 
 An earlier draft listed a fifth gap, a Freerouting runner. That request was
 already filed as rjwalters/kicad-tools#7991, and it was closed as not planned on
@@ -1568,6 +1568,13 @@ it in `docs/architecture.md`. RTE-09 is out of scope as a result.
 G3 is not an open gap either. kicad-tools 0.24.0 already has `kct pcb diff`
 (kicad-tools #6417, [P-T10]), which compares two board files item by item and
 can emit JSON. #6 should not file it; SES-12 builds on it.
+
+G1, G2 and G4 are not open gaps either. kicad-tools closed all three as
+completed on 2026-10-27 and first shipped them in 0.25.0: `Finding` locators
+in net-status JSON and `measure_clearance` (G1, #8015), `kct check --bbox`,
+`--refs` and `--nets` (G2, #8016), and `kct export-formats` (G4, #8017)
+([P-T11]). #6 should not file them; SES-09 and SES-10 build on G1, REV-07 on
+G2, and MFG-03 on G4.
 
 ## Coverage of #4 and #5
 
@@ -1584,8 +1591,9 @@ can emit JSON. #6 should not file it; SES-12 builds on it.
 
 ## Provenance
 
-Every source except P-T10 was accessed on **2026-10-27**; P-T10 was accessed
-on **2026-10-28**. No black-box runs of Konnect or of any other project's binaries
+Every source except P-T10 and P-T11 was accessed on **2026-10-27**; P-T10 was
+accessed on **2026-10-28** and P-T11 on **2026-11-14**. No black-box runs of
+Konnect or of any other project's binaries
 were made. The only commands run were kicad-tools' own CLI help (`kct`,
 version 0.24.0, MIT), for the "already in kicad-tools" column, and on
 2026-10-28 `kct --version` and `kct pcb diff --help`, to confirm G3 resolved
@@ -1627,6 +1635,7 @@ copied.
 | P-T8 | kicad-tools MCP tool registry (names only) | https://github.com/rjwalters/kicad-tools/tree/6a844af6d/src/kicad_tools/mcp/tools | MCP tool names cited in the kicad-tools column |
 | P-T9 | kicad-tools #7991 (Freerouting runner), closed as not planned, with the operator's ruling of 2026-10-27 | https://github.com/rjwalters/kicad-tools/issues/7991 | RTE-09 out of scope, and G5 withdrawn: kct runs no external router, and boards it cannot route become router-gap reports |
 | P-T10 | kicad-tools `kct pcb diff --help` and package metadata, kicad-tools 0.24.0, plus kicad-tools #6417 (accessed 2026-10-28) | https://github.com/rjwalters/kicad-tools/issues/6417 | G3 resolved upstream; SES-12 kicad-tools column |
+| P-T11 | kicad-tools #8015 (G1), #8016 (G2) and #8017 (G4), closed as completed on 2026-10-27, with their closing PRs #8022, #8020 and #8018 and release-tag containment in kicad-tools 0.25.0 (accessed 2026-11-14) | https://github.com/rjwalters/kicad-tools/issues/8015 | G1, G2 and G4 resolved upstream |
 
 **Unreachable or not used.**
 - `https://docs.kicad.org/kicad-python/` (2026-10-27) returned a page with no
