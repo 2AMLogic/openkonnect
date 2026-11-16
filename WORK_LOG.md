@@ -5,6 +5,8 @@ Maintained by the Loom Guide role; entries are appended automatically.
 
 ### 2026-11-16
 
+- **PR #117**: feat: adopt kicad-tools' versioned finding format in show_findings
+- **Issue #111** (closed): Adopt kicad-tools' versioned Finding format in show_findings and retire the G1 scaffolding
 - **PR #116**: docs: align REV-07 and MFG-03 with the resolved G2/G4 gap rows
 - **PR #112**: docs: restate kipy confinement as a rule, guarded in test_doc_drift
 - **PR #110**: refactor: use shared tools/common check_str in list_copper
