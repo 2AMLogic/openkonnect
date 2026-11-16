@@ -42,7 +42,9 @@ def test_live_layers_and_stackup(opened):
     for layer in r["layers"]:
         assert isinstance(layer["name"], str) and isinstance(layer["user_name"], str)
     kinds = [row["kind"] for row in r["stackup"]]
-    assert kinds and kinds[0] == "silkscreen"
+    # not the top row: whether KiCad emits a disabled F.SilkS row at all is
+    # an open question, so only non-emptiness is asserted here
+    assert kinds
     assert kinds.count("copper") == 2
     assert kinds.count("dielectric") >= 1
     for row in r["stackup"]:
@@ -54,6 +56,7 @@ def test_live_layers_and_stackup(opened):
             if row["dielectric"] is not None:
                 assert row["dielectric"]["type"] in ("core", "prepreg", "none", "unknown")
                 for sub in row["dielectric"]["sub_layers"]:
-                    assert isinstance(sub["epsilon_r"], float)
-                    assert isinstance(sub["loss_tangent"], float)
+                    # null convention: a KiCad reporting 0 maps to null
+                    assert sub["epsilon_r"] is None or isinstance(sub["epsilon_r"], float)
+                    assert sub["loss_tangent"] is None or isinstance(sub["loss_tangent"], float)
     assert r["total_thickness_mm"] is None or isinstance(r["total_thickness_mm"], float)

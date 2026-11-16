@@ -224,6 +224,20 @@ def test_decode_disabled_row_is_reported_with_its_flag():
     assert d["stackup"][0]["enabled"] is False
 
 
+def test_disabled_row_with_thickness_still_counts_toward_the_total():
+    d = decode(
+        [
+            copper_row(BoardLayer.BL_F_Cu),
+            copper_row(BoardLayer.BL_B_Cu, thickness_nm=10_000, enabled=False),
+        ]
+    )
+    assert [row["enabled"] for row in d["stackup"]] == [True, False]
+    r = describe_layers_and_stackup(d)
+    # 35 um enabled + 10 um disabled: the total sums every row carrying a
+    # thickness, disabled rows included -- not the fabricated board thickness.
+    assert r["total_thickness_mm"] == 0.045
+
+
 def test_decode_empty_stackup_and_enabled_layers():
     d = decode([])
     assert d["stackup"] == []
@@ -290,6 +304,26 @@ def test_unset_and_zero_thickness_do_not_collapse_in_mm():
 
 def test_no_thickness_anywhere_is_a_null_total_not_zero():
     data = {"layers": [], "copper_layers": 2, "stackup": [backend_row()]}
+    r = describe_layers_and_stackup(data)
+    assert r["total_thickness_mm"] is None
+
+
+def test_disabled_row_being_the_only_thickness_carrier_still_counts():
+    data = {
+        "layers": [],
+        "copper_layers": 2,
+        "stackup": [backend_row(enabled=False, thickness_nm=10_000)],
+    }
+    # the total is that row's thickness, not null
+    assert describe_layers_and_stackup(data)["total_thickness_mm"] == 0.01
+
+
+def test_disabled_thickness_free_rows_are_a_null_total():
+    data = {
+        "layers": [],
+        "copper_layers": 2,
+        "stackup": [backend_row(enabled=False), backend_row(enabled=False)],
+    }
     r = describe_layers_and_stackup(data)
     assert r["total_thickness_mm"] is None
 

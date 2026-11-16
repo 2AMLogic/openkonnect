@@ -19,8 +19,11 @@ DESCRIPTION = (
     "dielectric, silkscreen, soldermask, solderpaste), board layer (canonical "
     "name; null for dielectric rows), user name, enabled flag, thickness and "
     "material; a dielectric row also carries its type (core or prepreg) and each "
-    "sub-layer's material, epsilon_r, loss_tangent and thickness. Lengths are in "
-    "millimetres. Anything KiCad does not report is null, never a guessed default."
+    "sub-layer's material, epsilon_r, loss_tangent and thickness. total_thickness_mm "
+    "sums every row that reports a thickness, disabled rows included, so it is the "
+    "stackup's total rather than necessarily the fabricated board thickness. Lengths "
+    "are in millimetres. Anything KiCad does not report is null, never a guessed "
+    "default."
 )
 
 
