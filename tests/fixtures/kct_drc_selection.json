@@ -1,0 +1,266 @@
+{
+  "source": "/tmp/loom-nt/ef6a3a57-4188-4bdb-857d-1b8c703cfe41/drc_mwnvg9pc.json",
+  "pcb_name": "selection.kicad_pcb",
+  "summary": {
+    "errors": 2,
+    "warnings": 3,
+    "unconnected": 2,
+    "parity_errors": 0,
+    "parity_warnings": 0
+  },
+  "violations": [
+    {
+      "type": "footprint",
+      "type_str": "lib_footprint_issues",
+      "severity": "warning",
+      "category": "placement",
+      "message": "The current configuration does not include the footprint library 'openkonnect'",
+      "rule": "",
+      "locations": [
+        {
+          "x_mm": 110.0,
+          "y_mm": 60.0,
+          "layer": ""
+        }
+      ],
+      "items": [
+        "Footprint R1"
+      ],
+      "nets": [],
+      "required_value_mm": null,
+      "actual_value_mm": null,
+      "delta_mm": null
+    },
+    {
+      "type": "footprint",
+      "type_str": "lib_footprint_issues",
+      "severity": "warning",
+      "category": "placement",
+      "message": "The current configuration does not include the footprint library 'openkonnect'",
+      "rule": "",
+      "locations": [
+        {
+          "x_mm": 120.0,
+          "y_mm": 60.0,
+          "layer": ""
+        }
+      ],
+      "items": [
+        "Footprint R2"
+      ],
+      "nets": [],
+      "required_value_mm": null,
+      "actual_value_mm": null,
+      "delta_mm": null
+    },
+    {
+      "type": "footprint",
+      "type_str": "lib_footprint_issues",
+      "severity": "warning",
+      "category": "placement",
+      "message": "The current configuration does not include the footprint library 'openkonnect'",
+      "rule": "",
+      "locations": [
+        {
+          "x_mm": 130.0,
+          "y_mm": 65.0,
+          "layer": ""
+        }
+      ],
+      "items": [
+        "Footprint R3"
+      ],
+      "nets": [],
+      "required_value_mm": null,
+      "actual_value_mm": null,
+      "delta_mm": null
+    },
+    {
+      "type": "unconnected_items",
+      "type_str": "unconnected_items",
+      "severity": "error",
+      "category": "connectivity",
+      "message": "Missing connection between items",
+      "rule": "",
+      "locations": [
+        {
+          "x_mm": 111.0,
+          "y_mm": 60.0,
+          "layer": ""
+        },
+        {
+          "x_mm": 131.0,
+          "y_mm": 65.0,
+          "layer": ""
+        }
+      ],
+      "items": [
+        "Pad 2 [GND] of R1 on F.Cu",
+        "Pad 2 [GND] of R3 on F.Cu"
+      ],
+      "nets": [
+        "GND"
+      ],
+      "required_value_mm": null,
+      "actual_value_mm": null,
+      "delta_mm": null
+    },
+    {
+      "type": "unconnected_items",
+      "type_str": "unconnected_items",
+      "severity": "error",
+      "category": "connectivity",
+      "message": "Missing connection between items",
+      "rule": "",
+      "locations": [
+        {
+          "x_mm": 121.0,
+          "y_mm": 60.0,
+          "layer": ""
+        },
+        {
+          "x_mm": 129.0,
+          "y_mm": 65.0,
+          "layer": ""
+        }
+      ],
+      "items": [
+        "Pad 2 [SIG] of R2 on F.Cu",
+        "Pad 1 [SIG] of R3 on F.Cu"
+      ],
+      "nets": [
+        "SIG"
+      ],
+      "required_value_mm": null,
+      "actual_value_mm": null,
+      "delta_mm": null
+    }
+  ],
+  "schema_version": 1,
+  "findings": [
+    {
+      "schema_version": 1,
+      "rule_id": "lib_footprint_issues",
+      "severity": "warning",
+      "message": "The current configuration does not include the footprint library 'openkonnect'",
+      "refs": [
+        "R1"
+      ],
+      "pads": [],
+      "nets": [],
+      "point": [
+        110.0,
+        60.0
+      ],
+      "bbox": null,
+      "layer": null,
+      "waived": false
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "lib_footprint_issues",
+      "severity": "warning",
+      "message": "The current configuration does not include the footprint library 'openkonnect'",
+      "refs": [
+        "R2"
+      ],
+      "pads": [],
+      "nets": [],
+      "point": [
+        120.0,
+        60.0
+      ],
+      "bbox": null,
+      "layer": null,
+      "waived": false
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "lib_footprint_issues",
+      "severity": "warning",
+      "message": "The current configuration does not include the footprint library 'openkonnect'",
+      "refs": [
+        "R3"
+      ],
+      "pads": [],
+      "nets": [],
+      "point": [
+        130.0,
+        65.0
+      ],
+      "bbox": null,
+      "layer": null,
+      "waived": false
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "unconnected_items",
+      "severity": "error",
+      "message": "Missing connection between items",
+      "refs": [
+        "R1",
+        "R3"
+      ],
+      "pads": [
+        "R1.2",
+        "R3.2"
+      ],
+      "nets": [
+        "GND"
+      ],
+      "point": [
+        111.0,
+        60.0
+      ],
+      "bbox": [
+        111.0,
+        60.0,
+        131.0,
+        65.0
+      ],
+      "layer": null,
+      "waived": false
+    },
+    {
+      "schema_version": 1,
+      "rule_id": "unconnected_items",
+      "severity": "error",
+      "message": "Missing connection between items",
+      "refs": [
+        "R2",
+        "R3"
+      ],
+      "pads": [
+        "R2.2",
+        "R3.1"
+      ],
+      "nets": [
+        "SIG"
+      ],
+      "point": [
+        121.0,
+        60.0
+      ],
+      "bbox": [
+        121.0,
+        60.0,
+        129.0,
+        65.0
+      ],
+      "layer": null,
+      "waived": false
+    }
+  ],
+  "schematic_parity": {
+    "status": "NOT RUN",
+    "checked": false,
+    "reason": "no schematic found for selection.kicad_pcb (kicad-cli only reads selection.kicad_sch; looked for project.kct artifacts.schematic, <stripped-stem>.kicad_sch, a .kicad_pro-paired or sole .kicad_sch); pass --schematic PATH",
+    "error_count": 0,
+    "warning_count": 0,
+    "schematic": null,
+    "issues": []
+  },
+  "schematic_parity_checked": false,
+  "verdict": "fail",
+  "exit_code": 1
+}

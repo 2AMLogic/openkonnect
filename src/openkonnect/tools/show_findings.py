@@ -34,7 +34,8 @@ A point is optional. A finding whose point is null, missing or not an
 ``(x, y)`` pair is resolved from its references, pads and nets alone; its
 result has ``has_point: false`` and a ``point_note`` saying so, and no
 coordinate is invented. A finding with no point, no bbox and no name is
-``invalid_argument``, naming its index.
+reported ``unresolved`` with a ``no_locator`` reason; the rest of the
+payload is still resolved and shown.
 """
 
 from __future__ import annotations
@@ -132,6 +133,14 @@ def split_input(findings: Any) -> tuple[list[Any], str | None]:
 
 
 def extract_all(items: list[Any]) -> list[list[F.Locator]]:
+    """Each finding's locators; an empty list for a finding that carries none.
+
+    A versioned finding with no reference, pad or net and a null, missing or
+    malformed point and bbox is not a payload error: it degrades to an empty
+    locator list, and that one finding is reported ``unresolved``
+    (``no_locator``) while the rest of the payload is still resolved and
+    shown. Only an element that is not a versioned finding at all is refused.
+    """
     out = []
     for i, finding in enumerate(items):
         try:
@@ -144,14 +153,6 @@ def extract_all(items: list[Any]) -> list[list[F.Locator]]:
                 observed_schema_version=d.get("schema_version") if d else None,
                 supported_schema_version=F.SUPPORTED_SCHEMA_VERSION,
             ) from None
-        if not locs:
-            rule = (F.as_dict(finding) or {}).get("rule_id")
-            raise E.invalid_argument(
-                f"Finding {i}{f' ({rule})' if rule else ''} carries no locator: no "
-                "reference, pad or net, and its point and bbox are null, missing or "
-                "not well formed.",
-                index=i,
-            )
         out.append(locs)
     return out
 
@@ -271,6 +272,12 @@ NO_POINT_NOTE = (
     "only, and no location was checked."
 )
 
+NO_LOCATOR_MESSAGE = (
+    "The finding carries no locator: no reference, pad or net, and its point and "
+    "bbox are null, missing or not well formed. Nothing could be selected for it; "
+    "the other findings were still resolved."
+)
+
 _POINT_MESSAGES = {
     "empty_area": "No item's bounding box contains this point.",
 }
@@ -343,7 +350,9 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
     points: list[dict[str, Any]] = []
 
     # Upstream's bbox spans the locations a finding concerns; when it is
-    # supplied and no name resolved, it resolves instead of the point.
+    # supplied and no name resolved, it resolves instead of the point. When
+    # names did resolve, it only checks that the region overlaps what the
+    # names selected -- it never widens the selection or fails the finding.
     for loc in locs:
         if loc.kind != "bbox":
             continue
@@ -355,32 +364,43 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
             "x1_mm": x1 / NM_PER_MM,
             "y1_mm": y1 / NM_PER_MM,
         }
-        hits = [
-            i
-            for i in index.all_items()
-            if i.get("bbox_nm")
-            and _intersects(i["bbox_nm"], x0, y0, x1, y1)
-            and _on_layer(i, loc.layer)
-        ]
-        entry["used_for"] = "resolve"
-        if not hits:
-            entry["reason"] = "empty_area"
-            unresolved.append(
-                {"locator": loc.to_dict(), "reason": "empty_area", "message": BBOX_EMPTY_MESSAGE}
+        if named:
+            entry["used_for"] = "check"
+            entry["within_resolved_items"] = any(
+                i.get("bbox_nm") and _intersects(i["bbox_nm"], x0, y0, x1, y1)
+                for i in chosen.values()
             )
         else:
-            smallest = min(_area(i["bbox_nm"]) for i in hits)
-            for i in hits:
-                if _area(i["bbox_nm"]) == smallest:
-                    take(i)
-                    if i["kind"] == "footprint":
-                        footprints.add(i["ref"])
-                    elif i["kind"] == "pad" and pad_name(i):
-                        pads.add(pad_name(i))
-                    elif i.get("net"):
-                        nets.add(i["net"])
-            entry["resolved_to"] = len([i for i in hits if _area(i["bbox_nm"]) == smallest])
-            named = True
+            hits = [
+                i
+                for i in index.all_items()
+                if i.get("bbox_nm")
+                and _intersects(i["bbox_nm"], x0, y0, x1, y1)
+                and _on_layer(i, loc.layer)
+            ]
+            entry["used_for"] = "resolve"
+            if not hits:
+                entry["reason"] = "empty_area"
+                unresolved.append(
+                    {
+                        "locator": loc.to_dict(),
+                        "reason": "empty_area",
+                        "message": BBOX_EMPTY_MESSAGE,
+                    }
+                )
+            else:
+                smallest = min(_area(i["bbox_nm"]) for i in hits)
+                for i in hits:
+                    if _area(i["bbox_nm"]) == smallest:
+                        take(i)
+                        if i["kind"] == "footprint":
+                            footprints.add(i["ref"])
+                        elif i["kind"] == "pad" and pad_name(i):
+                            pads.add(pad_name(i))
+                        elif i.get("net"):
+                            nets.add(i["net"])
+                entry["resolved_to"] = len([i for i in hits if _area(i["bbox_nm"]) == smallest])
+                named = True
         points.append(entry)
 
     for loc in locs:
@@ -562,6 +582,10 @@ def show_findings(
     for i, locs in enumerate(extracted):
         d = F.as_dict(items[i]) or {}
         r = resolve(index, locs)
+        if not locs:
+            r["unresolved"] = [
+                {"locator": None, "reason": "no_locator", "message": NO_LOCATOR_MESSAGE}
+            ]
         in_focus = i in focused
         if in_focus:
             ids.extend(x for x in r["ids"] if x not in ids)

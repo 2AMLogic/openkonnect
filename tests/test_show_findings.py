@@ -50,10 +50,20 @@ def kct_json(*argv: str) -> dict:
     kct = find_kct()
     if kct is None:
         pytest.skip("kct (kicad-tools) not found")
-    out = subprocess.run(
-        [kct, *argv], capture_output=True, text=True, timeout=120, check=False
-    ).stdout
-    return json.loads(out)
+    p = subprocess.run([kct, *argv], capture_output=True, text=True, timeout=120, check=False)
+    err_tail = p.stderr.strip()[-500:]
+    if not p.stdout.strip():
+        raise AssertionError(
+            f"`kct {' '.join(argv)}` wrote nothing on stdout (rc={p.returncode}); "
+            f"stderr tail: {err_tail!r}"
+        )
+    try:
+        return json.loads(p.stdout)
+    except ValueError as e:
+        raise AssertionError(
+            f"`kct {' '.join(argv)}` stdout is not JSON (rc={p.returncode}): {e}; "
+            f"stderr tail: {err_tail!r}"
+        ) from None
 
 
 def courtyard(ref: str, x: float, y: float) -> Finding:
@@ -77,6 +87,15 @@ def envelope(*fs: Finding, **extra) -> dict:
     }
 
 
+# A real `kct drc tests/fixtures/selection.kicad_pcb --format json` response,
+# captured verbatim (kicad-tools 0.29.0, kicad-cli 8). `kct drc` shells out to
+# kicad-cli, which CI runners do not have, so the live-subprocess loop skips
+# drc there and this capture is what the production reader is tested against.
+# The capture-run's `source` (kicad-cli's temp report path) and footprint-library
+# warnings are kept as captured.
+DRC_CAPTURE = Path(__file__).parent / "fixtures" / "kct_drc_selection.json"
+
+
 # -- the reader reads the versioned format -------------------------------------
 
 
@@ -94,14 +113,43 @@ def test_finding_objects_and_their_json_read_the_same():
 
 
 def test_versioned_payloads_from_every_kct_emitter_resolve():
+    # drc is not in this loop: `kct drc` shells out to kicad-cli, which a CI
+    # runner does not have (there it exits 0 with empty stdout), so its real
+    # payload is covered by the captured file in the test below.
     fake = EditorFake()
-    for cmd in ("check", "drc", "detect-mistakes", "net-status"):
+    for cmd in ("check", "detect-mistakes", "net-status"):
         payload = kct_json(cmd, SELECTION_BOARD, "--format", "json")
         assert payload["schema_version"] == F.SUPPORTED_SCHEMA_VERSION
         assert payload["findings"], f"{cmd} emitted no findings on the fixture board"
         r = show(fake, payload)
         assert r["ok"] is True, {cmd: r}
         assert r["totals"]["findings"] == len(payload["findings"])
+
+
+def test_captured_drc_payload_resolves_without_kicad():
+    payload = json.loads(DRC_CAPTURE.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == F.SUPPORTED_SCHEMA_VERSION
+    assert payload["findings"], "the captured drc run emitted no findings"
+    fake = EditorFake()
+    r = show(fake, payload)
+    assert r["ok"] is True, r
+    assert r["totals"]["findings"] == len(payload["findings"])
+    # The unconnected_items finding carries refs, pads, a net AND a bbox; the
+    # names resolve it and the bbox only checks -- it must not widen the
+    # selection beyond what the names resolved (the post-fix regression pin,
+    # measured against a real kct drc response).
+    unconnected = [
+        f for f in r["findings"] if f["rule_id"] == "unconnected_items" and f["index"] == 3
+    ]
+    assert len(unconnected) == 1
+    [f] = unconnected
+    assert f["status"] == "resolved"
+    assert f["resolved"]["footprints"] == ["R1", "R3"]
+    assert f["resolved"]["pads"] == ["R1.2", "R3.2"]
+    assert f["resolved"]["item_count"] == 4
+    assert f["unresolved"] == []
+    [box] = [p for p in f["points"] if "x0_mm" in p.get("file_mm", {})]
+    assert box["used_for"] == "check" and box["within_resolved_items"] is True
 
 
 def test_measure_clearance_shaped_finding_resolves():
@@ -298,12 +346,21 @@ def test_finding_missing_locator_fields_is_invalid_argument():
     assert "missing" in r["error"]["message"]
 
 
-def test_finding_with_null_point_and_no_name_is_invalid_argument():
+def test_finding_with_null_point_and_no_name_is_reported_unresolved():
+    # Degrades per finding: this finding is unresolved with a no_locator
+    # reason, and the rest of the payload is still resolved and selected.
     bare = Finding(rule_id="x", severity="error", message="").to_dict()
-    r = show(EditorFake(), [courtyard("R1", 110, 60), bare])
-    assert r["error"]["code"] == "invalid_argument"
-    assert r["error"]["details"]["index"] == 1
-    assert "carries no locator" in r["error"]["message"]
+    fake = EditorFake()
+    r = show(fake, [courtyard("R1", 110, 60), bare])
+    assert r["ok"] is True, r
+    good, bare_r = r["findings"]
+    assert good["status"] == "resolved"
+    assert bare_r["status"] == "unresolved"
+    assert bare_r["unresolved"][0]["reason"] == "no_locator"
+    assert "carries no locator" in bare_r["unresolved"][0]["message"]
+    assert bare_r["action"] == "nothing_to_select"
+    assert r["totals"]["unresolved"] == 1
+    assert selected(fake)["footprints"] == ["R1"]
 
 
 def test_unrecognised_finding_is_invalid_argument_naming_its_index():
@@ -315,11 +372,15 @@ def test_unrecognised_finding_is_invalid_argument_naming_its_index():
     assert "set_selection" not in fake.calls
 
 
-def test_finding_without_any_locator_is_invalid_argument():
+def test_finding_without_any_locator_is_reported_unresolved():
     empty = Finding(rule_id="x", severity="error", message="nothing to point at")
     r = show(EditorFake(), [courtyard("R1", 110, 60), empty])
-    assert r["error"]["code"] == "invalid_argument"
-    assert r["error"]["details"]["index"] == 1
+    assert r["ok"] is True, r
+    good, empty_r = r["findings"]
+    assert good["status"] == "resolved"
+    assert empty_r["status"] == "unresolved"
+    assert empty_r["unresolved"][0]["reason"] == "no_locator"
+    assert r["totals"]["unresolved"] == 1
 
 
 def test_envelope_without_findings_is_invalid_argument():
@@ -422,6 +483,45 @@ def test_bbox_is_preferred_over_point_when_no_name_resolves():
     box, point = f["points"]  # the bbox is processed (and reported) first
     assert point["used_for"] == "check" and point["within_resolved_items"] is True
     assert box["used_for"] == "resolve"
+
+
+def test_bbox_with_resolving_names_is_checked_not_resolved():
+    # Real kct drc findings carry names AND a bbox (upstream builds it with
+    # _bbox_of(), which needs >= 2 points). The names resolve the finding;
+    # the bbox must neither widen the selection nor fail it.
+    wide = Finding(
+        rule_id="unconnected_items",
+        severity="error",
+        message="",
+        refs=["R3"],
+        bbox=[100.0, 50.0, 140.0, 70.0],
+    )
+    r = show(EditorFake(), [wide])
+    assert r["ok"] is True, r
+    [f] = r["findings"]
+    assert f["status"] == "resolved"
+    assert f["resolved"]["footprints"] == ["R3"]
+    assert f["resolved"]["item_count"] == 1
+    assert f["unresolved"] == []
+    [box] = f["points"]
+    assert box["used_for"] == "check" and box["within_resolved_items"] is True
+
+    empty = Finding(
+        rule_id="unconnected_items",
+        severity="error",
+        message="",
+        refs=["R3"],
+        bbox=[101.0, 51.0, 102.0, 52.0],  # over bare board, overlaps nothing
+    )
+    r = show(EditorFake(), [empty])
+    assert r["ok"] is True, r
+    [f] = r["findings"]
+    assert f["status"] == "resolved"  # the names still resolve it
+    assert f["resolved"]["footprints"] == ["R3"]
+    assert f["resolved"]["item_count"] == 1
+    assert f["unresolved"] == []
+    [box] = f["points"]
+    assert box["used_for"] == "check" and box["within_resolved_items"] is False
 
 
 def test_bbox_over_nothing_resolves_nothing_and_leaves_the_selection():
