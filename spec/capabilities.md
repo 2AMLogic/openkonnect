@@ -513,9 +513,11 @@ control, and grouping edits into transactions. Every entry here is live-editor.
 
   Plus totals.
 - **Optional location (#5):** a finding's `point` is optional, and is null
-  when the emitter could not place it. Such a finding is resolved from its
-  refs, pads and nets alone and reported with `has_point: false` and a
-  `point_note`; no point is invented. A finding with neither a point, a bbox
+  when the emitter could not place it. Such a finding is reported with
+  `has_point: false` and a `point_note`; no point is invented. One resolved
+  from its refs, pads and nets alone gets a note saying so; one resolved
+  from the region its bbox spans gets a note saying it was resolved from
+  the region the finding carries. A finding with neither a point, a bbox
   nor a name is reported `unresolved` with a `no_locator` reason; the rest
   of the payload is still resolved.
 - **KiCad 10 notes:**
