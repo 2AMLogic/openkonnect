@@ -5,6 +5,8 @@ Maintained by the Loom Guide role; entries are appended automatically.
 
 ### 2026-11-17
 
+- **PR #124**: fix: derive each null-point point_note from what resolved and what was checked
+- **Issue #122** (closed): point_note still claims "no location was checked" for four null-point shapes a bbox was checked for
 - **PR #121**: fix(show_findings): point_note names the bbox region for region-resolved findings
 - **Issue #119** (closed): show_findings: point_note says a bbox-resolved finding was 'resolved from its references, pads and nets only'
 

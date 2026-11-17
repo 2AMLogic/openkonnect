@@ -33,7 +33,7 @@ Human-approved issues ready for implementation (`loom:issue`).
 
 Issues currently being built (`loom:building`).
 
-- **#122**: point_note still claims "no location was checked" for four null-point shapes a bbox was checked for
+_None._
 
 ## PRs Awaiting Review
 
@@ -51,7 +51,7 @@ _None._
 
 Issues carrying `loom:curated`.
 
-- **#122**: point_note still claims "no location was checked" for four null-point shapes a bbox was checked for *(curated)*
+_None._
 
 ## Proposed (Architect / Hermit)
 
@@ -69,10 +69,10 @@ _None._
 | Very important | 1 |
 | Important | 0 |
 | Ready (`loom:issue`) | 1 |
-| In Progress (`loom:building`) | 1 |
+| In Progress (`loom:building`) | 0 |
 | PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 0 |
-| Curated | 1 |
+| Curated | 0 |
 | Architect / Hermit proposals | 1 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
