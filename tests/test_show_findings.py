@@ -333,6 +333,8 @@ def test_finding_without_point_resolves_by_name_and_says_so(how):
     assert f["resolved"]["nets"] == ["VIN"]
     assert f["points"] == [] and f["has_point"] is False
     assert "null or missing" in f["point_note"]
+    assert "references, pads and nets only" in f["point_note"]
+    assert "region (bbox)" not in f["point_note"]
     assert f["unresolved"] == []
     assert located["has_point"] is True and "point_note" not in located
     assert "R2" in selected(fake)["footprints"]
@@ -465,7 +467,8 @@ def test_bbox_without_point_resolves_the_smallest_overlapping_items():
     assert f["status"] == "resolved"
     assert f["resolved"]["pads"] == ["R3.1", "R3.2"]
     assert f["has_point"] is False
-    assert "point_note" in f
+    assert "resolved from the region (bbox) the finding carries" in f["point_note"]
+    assert "references, pads and nets only" not in f["point_note"]
     [p] = f["points"]
     assert p["used_for"] == "resolve" and p["resolved_to"] == 2
 
@@ -507,6 +510,9 @@ def test_bbox_with_resolving_names_is_checked_not_resolved():
     assert f["unresolved"] == []
     [box] = f["points"]
     assert box["used_for"] == "check" and box["within_resolved_items"] is True
+    # The names resolved it, so the note must name them and not the bbox.
+    assert "references, pads and nets only" in f["point_note"]
+    assert "region (bbox)" not in f["point_note"]
 
     empty = Finding(
         rule_id="unconnected_items",

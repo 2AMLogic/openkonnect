@@ -31,9 +31,10 @@ How locators become items:
   layer, when given). Otherwise it is checked against the resolved items.
 
 A point is optional. A finding whose point is null, missing or not an
-``(x, y)`` pair is resolved from its references, pads and nets alone; its
-result has ``has_point: false`` and a ``point_note`` saying so, and no
-coordinate is invented. A finding with no point, no bbox and no name is
+``(x, y)`` pair is resolved from its references, pads and nets alone, or
+from the region its ``bbox`` spans when no name resolved; its result has
+``has_point: false`` and a ``point_note`` saying which, and no coordinate
+is invented. A finding with no point, no bbox and no name is
 reported ``unresolved`` with a ``no_locator`` reason; the rest of the
 payload is still resolved and shown.
 """
@@ -65,7 +66,8 @@ DESCRIPTION = (
     "lists the resolved items, the locators that did not resolve with a reason, and the "
     "action taken, plus totals. Findings whose pcb_sha256 no longer matches the board are "
     "still resolved and flagged possibly_stale. A finding's point is optional: one with a "
-    "null or missing point is resolved from its names and reported with has_point false."
+    "null or missing point is resolved from its names or its bbox region and reported "
+    "with has_point false."
 )
 
 MODES = ("select", "highlight", "both")
@@ -270,6 +272,12 @@ NO_POINT_NOTE = (
     "The finding carries no point: its point is null or missing (optional in the "
     "versioned finding format). It was resolved from its references, pads and nets "
     "only, and no location was checked."
+)
+
+NO_POINT_BBOX_NOTE = (
+    "The finding carries no point: its point is null or missing (optional in the "
+    "versioned finding format). It was resolved from the region (bbox) the finding "
+    "carries, and no single point was checked."
 )
 
 NO_LOCATOR_MESSAGE = (
@@ -590,6 +598,11 @@ def show_findings(
         if in_focus:
             ids.extend(x for x in r["ids"] if x not in ids)
         has_point = any(p.get("kind") == "point" for p in r["points"])
+        resolved_from_bbox = not has_point and any(
+            p.get("kind") == "bbox" and p.get("used_for") == "resolve" and p.get("resolved_to")
+            for p in r["points"]
+        )
+        point_note = NO_POINT_BBOX_NOTE if resolved_from_bbox else NO_POINT_NOTE
         per.append(
             {
                 "index": i,
@@ -602,7 +615,7 @@ def show_findings(
                 "unresolved": r["unresolved"],
                 "points": r["points"],
                 "has_point": has_point,
-                **({} if has_point else {"point_note": NO_POINT_NOTE}),
+                **({} if has_point else {"point_note": point_note}),
                 "possibly_stale": stale["possibly_stale"],
                 "_ids": r["ids"],
                 "_focus": in_focus,
