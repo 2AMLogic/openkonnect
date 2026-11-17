@@ -24,6 +24,10 @@ from openkonnect.tools.run_kct_handoff import find_kct
 from openkonnect.tools.show_findings import (
     _POINT_MESSAGES,
     BBOX_EMPTY_MESSAGE,
+    NO_POINT_BBOX_EMPTY_NOTE,
+    NO_POINT_BBOX_NOTE,
+    NO_POINT_NAMES_BBOX_NOTE,
+    NO_POINT_NOTE,
     show_findings,
 )
 
@@ -340,6 +344,102 @@ def test_finding_without_point_resolves_by_name_and_says_so(how):
     assert "R2" in selected(fake)["footprints"]
 
 
+@pytest.mark.parametrize(
+    ("make_finding", "note"),
+    [
+        (
+            lambda: Finding(rule_id="x", severity="error", message="", refs=["R1"]),
+            NO_POINT_NOTE,
+        ),
+        (
+            lambda: Finding(
+                rule_id="x",
+                severity="error",
+                message="",
+                refs=["R3"],
+                bbox=[100.0, 50.0, 140.0, 70.0],
+            ),
+            NO_POINT_NAMES_BBOX_NOTE,
+        ),
+        (
+            lambda: Finding(
+                rule_id="x",
+                severity="error",
+                message="",
+                refs=["R3"],
+                bbox=[101.0, 51.0, 102.0, 52.0],
+            ),
+            NO_POINT_NAMES_BBOX_NOTE,
+        ),
+        (
+            lambda: Finding(
+                rule_id="x", severity="error", message="", bbox=[128.5, 64.4, 131.5, 65.6]
+            ),
+            NO_POINT_BBOX_NOTE,
+        ),
+        (
+            lambda: Finding(
+                rule_id="x", severity="error", message="", bbox=[101.0, 51.0, 102.0, 52.0]
+            ),
+            NO_POINT_BBOX_EMPTY_NOTE,
+        ),
+        (lambda: Finding(rule_id="x", severity="error", message=""), None),
+    ],
+    ids=[
+        "A_names_only",
+        "B_names_bbox_overlap",
+        "C_names_bbox_empty",
+        "D_bbox_resolves",
+        "E_bbox_empty",
+        "F_no_locator",
+    ],
+)
+def test_point_note_per_null_point_shape(make_finding, note):
+    # A null-point finding's note states what resolved it and what was
+    # checked, and never claims a resolution that did not happen.
+    r = show(EditorFake(), [make_finding()])
+    assert r["ok"] is True, r
+    [f] = r["findings"]
+    assert f["has_point"] is False
+    if note is None:
+        # F: nothing resolved and nothing was checked; the unresolved report
+        # (no_locator) already explains it, so there is no point_note.
+        assert "point_note" not in f
+        [u] = f["unresolved"]
+        assert u["reason"] == "no_locator"
+        return
+    assert f["point_note"] == note
+    if note is NO_POINT_NAMES_BBOX_NOTE:
+        assert f["status"] == "resolved"
+        assert "resolved from its references, pads and nets" in note
+        assert "region (bbox)" in note and "was checked" in note
+        assert "no location was checked" not in note
+    elif note is NO_POINT_BBOX_EMPTY_NOTE:
+        assert f["status"] == "unresolved"
+        assert "resolved from its references" not in note
+        assert "no item's bounding box overlaps" in note
+        assert "no location was checked" not in note
+
+
+def test_malformed_bbox_is_no_locator_and_carries_no_point_note():
+    d = Finding(rule_id="x", severity="error", message="", bbox=[1.0, 2.0, 3.0]).to_dict()
+    r = show(EditorFake(), [d])
+    assert r["ok"] is True, r
+    [f] = r["findings"]
+    assert f["has_point"] is False and f["points"] == []
+    assert "point_note" not in f
+    assert f["unresolved"][0]["reason"] == "no_locator"
+
+
+def test_finding_with_point_carries_no_point_note():
+    r = show(
+        EditorFake(), [Finding(rule_id="x", severity="error", message="", point=[110.0, 60.0])]
+    )
+    assert r["ok"] is True, r
+    [f] = r["findings"]
+    assert f["has_point"] is True and "point_note" not in f
+
+
 def test_finding_missing_locator_fields_is_invalid_argument():
     bad = courtyard("R1", 110, 60).to_dict()
     del bad["point"]
@@ -510,9 +610,13 @@ def test_bbox_with_resolving_names_is_checked_not_resolved():
     assert f["unresolved"] == []
     [box] = f["points"]
     assert box["used_for"] == "check" and box["within_resolved_items"] is True
-    # The names resolved it, so the note must name them and not the bbox.
-    assert "references, pads and nets only" in f["point_note"]
-    assert "region (bbox)" not in f["point_note"]
+    # The names resolved it and the bbox was only checked: the note must say
+    # both, and no longer deny that a location was checked.
+    assert f["point_note"] == NO_POINT_NAMES_BBOX_NOTE
+    assert "resolved from its references, pads and nets" in f["point_note"]
+    assert "region (bbox)" in f["point_note"]
+    assert "was checked" in f["point_note"]
+    assert "no location was checked" not in f["point_note"]
 
     empty = Finding(
         rule_id="unconnected_items",

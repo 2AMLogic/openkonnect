@@ -514,12 +514,15 @@ control, and grouping edits into transactions. Every entry here is live-editor.
   Plus totals.
 - **Optional location (#5):** a finding's `point` is optional, and is null
   when the emitter could not place it. Such a finding is reported with
-  `has_point: false` and a `point_note`; no point is invented. One resolved
-  from its refs, pads and nets alone gets a note saying so; one resolved
-  from the region its bbox spans gets a note saying it was resolved from
-  the region the finding carries. A finding with neither a point, a bbox
-  nor a name is reported `unresolved` with a `no_locator` reason; the rest
-  of the payload is still resolved.
+  `has_point: false` and a `point_note` saying both what resolved it and
+  what was checked; no point is invented. One resolved from its refs, pads
+  and nets alone gets a note saying so, adding that its bbox region was
+  checked against those items when it carries one; one resolved from the
+  region its bbox spans gets a note saying it was resolved from the region
+  the finding carries. When nothing resolved, a note says the bbox region
+  was checked and matched no item; a finding with neither a point, a bbox
+  nor a name is reported `unresolved` with a `no_locator` reason and no
+  `point_note`; the rest of the payload is still resolved.
 - **KiCad 10 notes:**
   - Selecting items is documented.
   - Zooming to items and highlighting a net are not documented. Those parts
