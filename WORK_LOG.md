@@ -3,6 +3,11 @@
 Chronological record of merged pull requests and closed issues, newest first.
 Maintained by the Loom Guide role; entries are appended automatically.
 
+### 2026-11-17
+
+- **PR #121**: fix(show_findings): point_note names the bbox region for region-resolved findings
+- **Issue #119** (closed): show_findings: point_note says a bbox-resolved finding was 'resolved from its references, pads and nets only'
+
 ### 2026-11-16
 
 - **PR #117**: feat: adopt kicad-tools' versioned finding format in show_findings
