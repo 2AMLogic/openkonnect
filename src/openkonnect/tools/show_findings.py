@@ -33,10 +33,11 @@ How locators become items:
 A point is optional. A finding whose point is null, missing or not an
 ``(x, y)`` pair is resolved from its references, pads and nets alone, or
 from the region its ``bbox`` spans when no name resolved; its result has
-``has_point: false`` and a ``point_note`` saying which, and no coordinate
-is invented. A finding with no point, no bbox and no name is
-reported ``unresolved`` with a ``no_locator`` reason; the rest of the
-payload is still resolved and shown.
+``has_point: false`` and a ``point_note`` saying which, and whether a
+bbox was only checked against the resolved items (or matched none), and
+no coordinate is invented. A finding with no point, no bbox and no name
+is reported ``unresolved`` with a ``no_locator`` reason and no
+``point_note``; the rest of the payload is still resolved and shown.
 """
 
 from __future__ import annotations
@@ -280,6 +281,20 @@ NO_POINT_BBOX_NOTE = (
     "carries, and no single point was checked."
 )
 
+NO_POINT_NAMES_BBOX_NOTE = (
+    "The finding carries no point: its point is null or missing (optional in the "
+    "versioned finding format). It was resolved from its references, pads and nets "
+    "only, and no single point was checked; the region (bbox) the finding carries "
+    "was checked against those items."
+)
+
+NO_POINT_BBOX_EMPTY_NOTE = (
+    "The finding carries no point: its point is null or missing (optional in the "
+    "versioned finding format). Nothing was resolved from references, pads or "
+    "nets; the region (bbox) the finding carries was checked, but no item's "
+    "bounding box overlaps it."
+)
+
 NO_LOCATOR_MESSAGE = (
     "The finding carries no locator: no reference, pad or net, and its point and "
     "bbox are null, missing or not well formed. Nothing could be selected for it; "
@@ -291,6 +306,27 @@ _POINT_MESSAGES = {
 }
 
 BBOX_EMPTY_MESSAGE = "No item's bounding box overlaps this finding's region."
+
+
+def _point_note(points: list[dict[str, Any]], resolved: dict[str, Any]) -> str | None:
+    """A no-point finding's note, from what resolved it and what was checked.
+
+    States what resolved the finding -- its names, the bbox region, or
+    nothing -- and what was checked; ``None`` when nothing resolved and
+    nothing was checked, where the unresolved report already says why.
+    """
+    if any(
+        p.get("kind") == "bbox" and p.get("used_for") == "resolve" and p.get("resolved_to")
+        for p in points
+    ):
+        return NO_POINT_BBOX_NOTE
+    names_resolved = bool(resolved.get("item_count")) or bool(resolved.get("nets"))
+    # Past the resolved-by-bbox return above, every bbox entry was either
+    # only checked against the resolved items, or probed and matched nothing.
+    bbox_seen = any(p.get("kind") == "bbox" for p in points)
+    if names_resolved:
+        return NO_POINT_NAMES_BBOX_NOTE if bbox_seen else NO_POINT_NOTE
+    return NO_POINT_BBOX_EMPTY_NOTE if bbox_seen else None
 
 
 def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
@@ -598,11 +634,7 @@ def show_findings(
         if in_focus:
             ids.extend(x for x in r["ids"] if x not in ids)
         has_point = any(p.get("kind") == "point" for p in r["points"])
-        resolved_from_bbox = not has_point and any(
-            p.get("kind") == "bbox" and p.get("used_for") == "resolve" and p.get("resolved_to")
-            for p in r["points"]
-        )
-        point_note = NO_POINT_BBOX_NOTE if resolved_from_bbox else NO_POINT_NOTE
+        point_note = None if has_point else _point_note(r["points"], r["resolved"])
         per.append(
             {
                 "index": i,
@@ -615,7 +647,7 @@ def show_findings(
                 "unresolved": r["unresolved"],
                 "points": r["points"],
                 "has_point": has_point,
-                **({} if has_point else {"point_note": point_note}),
+                **({} if has_point or point_note is None else {"point_note": point_note}),
                 "possibly_stale": stale["possibly_stale"],
                 "_ids": r["ids"],
                 "_focus": in_focus,
