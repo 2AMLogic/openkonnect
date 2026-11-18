@@ -3,6 +3,11 @@
 Chronological record of merged pull requests and closed issues, newest first.
 Maintained by the Loom Guide role; entries are appended automatically.
 
+### 2026-11-18
+
+- **PR #127**: ci: run lint/test on merge_group; use canonical kicad-tools source
+- **Issue #126** (closed): Qualify CI for merge groups and use the canonical KiCad Tools source
+
 ### 2026-11-17
 
 - **PR #124**: fix: derive each null-point point_note from what resolved and what was checked
