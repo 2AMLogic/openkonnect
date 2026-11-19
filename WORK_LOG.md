@@ -3,6 +3,12 @@
 Chronological record of merged pull requests and closed issues, newest first.
 Maintained by the Loom Guide role; entries are appended automatically.
 
+### 2026-11-19
+
+- **PR #133**: chore: run Squad installer pass to v0.19.41 (wait alias, opencode adapter, metadata)
+- **PR #131**: chore: refresh Squad block and skill so unattended roles do not stop
+- **Issue #132** (closed): Run a full Squad installer pass to v0.19.41 (missing /squad:wait alias, opencode adapter, stale install metadata)
+
 ### 2026-11-18
 
 - **PR #127**: ci: run lint/test on merge_group; use canonical kicad-tools source
