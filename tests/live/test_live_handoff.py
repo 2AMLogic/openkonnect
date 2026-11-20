@@ -37,13 +37,20 @@ pytestmark = pytest.mark.live_kicad
 
 
 #: Files ``kct route`` writes beside ``selection.kicad_pcb`` besides the route
-#: record (``remove_kct_artifacts``); ``{stem}`` is the board's stem.
+#: record (``remove_kct_artifacts``); ``{stem}`` is the board's stem. Names as
+#: written by kicad-tools 0.29.0 (observed 2026-11-20, issue #113): 0.24.0
+#: wrote bare ``fab_profile.json`` / ``net_class_map.json`` and wrote no
+#: ``decisions.json`` or ``.kicad_prl``. The ``.kicad_prl`` is also gitignored
+#: (``*.kicad_prl``), so leaving it behind would be harmless, but it is a kct
+#: output now, so it is cleaned up with the rest.
 KCT_ROUTE_OUTPUTS = (
-    "fab_profile.json",
-    "net_class_map.json",
+    "{stem}.fab_profile.json",
+    "{stem}.net_class_map.json",
     "{stem}.access_witness.json",
+    "{stem}.decisions.json",
     "{stem}.kicad_dru",
     "{stem}.routing_plan.json",
+    "{stem}.kicad_prl",
 )
 
 
