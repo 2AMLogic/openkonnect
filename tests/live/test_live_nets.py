@@ -8,24 +8,11 @@ project, so only the shape of the class field is checked.
 
 from __future__ import annotations
 
-import os
-
 import pytest
 
 from openkonnect.tools.list_nets import list_nets, version_tuple
 
-from ..conftest import SELECTION_BOARD
-
 pytestmark = pytest.mark.live_kicad
-
-
-@pytest.fixture
-def opened(live_session):
-    r = live_session.run_tool(lambda s: {"boards": s.call(lambda b: b.open_boards())})
-    names = [os.path.basename(b.path) for b in r.get("boards") or [] if b.path]
-    if os.path.basename(SELECTION_BOARD) not in names:
-        pytest.skip(f"live_kicad: open {SELECTION_BOARD} in KiCad (open boards: {names})")
-    return live_session
 
 
 def test_live_nets_match_the_fixture(opened):
