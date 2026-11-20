@@ -454,15 +454,22 @@ cluster such as `-vo X` or `-qoX`, and abbreviations such as `--out` or
 refused with any value and on every subcommand (#65), because on `route` kct
 finds it ambiguous (`--output`, `--oracle-rounds`, `--order-method`). Write
 `-o {board}` or `--output {board}` instead. `--auto-layers` is on by default
-in kicad-tools 0.24.0 and then honors the output path, so refusing the explicit
-flag is only a guard against older versions.
+in kicad-tools 0.29.0 and an explicit `--auto-layers` with `-o {board}` writes
+the open board in place exactly, with no `_4layer` file (observed 2026-11-20,
+issue #113), as 0.24.0 already did. The fixture routes at 2 layers, so layer
+escalation itself never ran in that observation; the escalation path keeps its
+0.24.0 observation and upstream #2809. Refusing the explicit flag remains a
+cheap guard, not a correctness need: escalation writes were version-volatile
+historically (pre-0.24 versions wrote `<stem>_4layer.kicad_pcb`).
 
 `route` and `route-auto` must be given `-o {board}` (in any of the spellings
 above), or the command gives `invalid_argument` before KiCad is contacted
-(#63). Without `-o`, kicad-tools 0.24.0 `route` writes `<stem>_routed.kicad_pcb`
-and `route-auto` saves nothing, so either could exit 0 with the open board
-unchanged. The other allow-listed commands write the board in place when `-o`
-is absent, so for them `-o {board}` is optional.
+(#63). Without `-o`, kicad-tools 0.29.0 `route` leaves the input board
+byte-identical and writes `<stem>_routed.kicad_pcb` beside it, and
+`route-auto` writes nothing at all — each exiting 0 with the open board
+unchanged (observed 2026-11-20, issue #113; same behaviour as 0.24.0). The
+other allow-listed commands write the board in place when `-o` is absent, so
+for them `-o {board}` is optional.
 
 Each IPC step runs under the normal per-call bound (`--timeout`). The command
 runs under `timeout_s`. The session's connection is not held while it runs, so
@@ -474,39 +481,54 @@ A failure names the step in `failed_step` and keeps the step records so far.
 
 Some `kct` commands write files next to the board as well as the board itself.
 kicad-tools writes them, not openkonnect, and the handoff does not report or
-remove them. So after a handoff they can show up in `git status`. The list
-below is for **kicad-tools 0.24.0**. It was read from its MIT source
-(`kicad_tools/cli/route_cmd.py`, `cli/route_receipt.py`,
-`cli/route_deadline.py`, `router/stuck_classifier.py`,
-`cli/commands/routing.py`, `cli/route_lint_gate.py`, `transaction.py` and the
-`cli/*_cmd.py` module of each command below). Other versions may write other
-files. `<stem>` is the board's file name without `.kicad_pcb`.
+remove them. So after a handoff they can show up in `git status`. The
+`kct route` rows below are for **kicad-tools 0.29.0**, observed live on
+2026-11-20 by running the installed CLI on fresh temporary copies of
+`tests/fixtures/selection.kicad_pcb` — once with no output argument, once with
+`-o` on the board itself, and once with an explicit `--auto-layers` (issue
+#113). Rows marked "not re-observed on 0.29" keep their 0.24.0 provenance: a
+read of kicad-tools' MIT source (`kicad_tools/cli/route_cmd.py`,
+`cli/route_receipt.py`, `cli/route_deadline.py`,
+`router/stuck_classifier.py`, `cli/commands/routing.py`,
+`cli/route_lint_gate.py`, `transaction.py` and the `cli/*_cmd.py` module of
+each command below). Other versions may write other files. `<stem>` is the
+file name of the board `kct route` **wrote** (the output board) without
+`.kicad_pcb`: with `-o {board}` that is the open board's stem, without `-o`
+the sidecars carry the `<stem>_routed` stem beside `<stem>_routed.kicad_pcb`
+itself.
 
 **`kct route`** writes these beside the board:
 
 | File | When | Seen live |
 |---|---|---|
-| `<stem>.route.json` | Every completed route. It records the hashes of the board, `.kicad_pro` and `.kicad_dru` | yes |
-| `<stem>.kicad_pro` (rewritten) | Every completed route. It keeps the existing project content and overwrites only the design-rule and severity entries from the manufacturer profile. It is created if missing | yes |
-| `<stem>.kicad_dru` | Every completed route. The manufacturer's rules go in a marked block, and hand-written rules in an existing file are kept | yes |
-| `fab_profile.json` | Every completed route. It names the manufacturer profile used | yes |
-| `net_class_map.json` | When the route has a net-class map. It is written as `net_class_map.effective.json` instead if the input map has the name `net_class_map.json` | yes |
-| `<stem>.routing_plan.json` | When the router built a routing plan | yes |
-| `<stem>.access_witness.json` | When the router recorded any commits (its commit journal) | yes |
-| `current_paths.json` (or `current_paths.effective.json`) | Only with `--current-paths` | no |
-| `<stem>.search_failures.json` | Only when a net's search failed. A route with no failures deletes an old one | no |
-| `<stem>_partial.kicad_pcb`, with `_partial` copies of the sidecars above | Only when the route is interrupted or times out | no |
-| `<stem>.timeout.json` | Only when the route runs out of its `--timeout` deadline | no |
-| `<stem>_4layer.kicad_pcb` / `<stem>_6layer.kicad_pcb` | Never written by 0.24.0: layer escalation (`--auto-layers`, on by default) writes the routed board to the output path exactly (upstream #2809). A route may instead delete stale files of these names, and `<stem>_4layer.kicad_prl` / `<stem>_6layer.kicad_prl`, left beside the output by older versions | no |
+| `<stem>.route.json` | Every completed route. An artifact manifest (`kicad-tools.route-artifacts.v1`) recording the hashes and sizes of the board, `.kicad_pro` and `.kicad_dru` | yes (0.24.0 #37; 0.29.0 2026-11-20) |
+| `<stem>.kicad_pro` (rewritten or created) | Every completed route. It keeps the existing project content and overwrites only the design-rule and severity entries from the manufacturer profile. It is created if missing (the 2026-11-20 runs started without one) | yes (0.24.0 #37; 0.29.0 2026-11-20) |
+| `<stem>.kicad_dru` | Every completed route. The manufacturer's rules go in a marked block, and hand-written rules in an existing file are kept | yes (0.24.0 #37; 0.29.0 2026-11-20) |
+| `<stem>.fab_profile.json` | Every completed route. It names the manufacturer profile used. Bare `fab_profile.json` in 0.24.0; stem-prefixed in 0.29.0 | yes (0.24.0 #37; 0.29.0 2026-11-20) |
+| `<stem>.net_class_map.json` | When the route has a net-class map. 0.24.0 wrote a bare `net_class_map.json`; 0.29.0 prefixes it with the output stem. Diverted to `net_class_map.effective.json` when the input map has the colliding name (not re-observed on 0.29; 0.29.0 `--help` and 0.24.0 source) | yes (0.24.0 #37; 0.29.0 2026-11-20) |
+| `<stem>.routing_plan.json` | When the router built a routing plan | yes (0.24.0 #37; 0.29.0 2026-11-20) |
+| `<stem>.access_witness.json` | When the router recorded any commits (its commit journal) | yes (0.24.0 #37; 0.29.0 2026-11-20) |
+| `<stem>.decisions.json` | Every completed route (observed 2026-11-20): a routing-decisions journal (per-decision action, components, nets, rationale, `decided_by`). Not in the 0.24.0 inventory | yes (0.29.0 2026-11-20) |
+| `<stem>.kicad_prl` | Every completed route (observed 2026-11-20): KiCad project-local settings beside the output board. Not in the 0.24.0 inventory, which only saw `_4layer.kicad_prl` / `_6layer.kicad_prl` siblings deleted | yes (0.29.0 2026-11-20) |
+| `current_paths.json` (or `current_paths.effective.json`) | Only with `--current-paths` | no (0.24.0 source; not re-observed on 0.29) |
+| `<stem>.search_failures.json` | Only when a net's search failed. A route with no failures deletes an old one | no (0.24.0 source; not re-observed on 0.29) |
+| `<stem>_partial.kicad_pcb`, with `_partial` copies of the sidecars above | Only when the route is interrupted or times out | no (0.24.0 source; not re-observed on 0.29) |
+| `<stem>.timeout.json` | Only when the route runs out of its `--timeout` deadline | no (0.24.0 source; not re-observed on 0.29) |
+| `<stem>_4layer.kicad_pcb` / `<stem>_6layer.kicad_pcb` | Never written in the 0.29.0 runs (2026-11-20): the fixture routes at 2 layers, so `--auto-layers` escalation never ran, and the explicit `--auto-layers` run wrote the output path exactly with no `_4layer` file — as 0.24.0 already did (upstream #2809). A route may instead delete stale files of these names, and `<stem>_4layer.kicad_prl` / `<stem>_6layer.kicad_prl`, left beside the output by older versions | escalation path: 0.24.0 observation + upstream #2809; not re-observed on 0.29 |
 
-"Seen live" means the file appeared when `kct route` ran through
-`run_kct_handoff` on `tests/fixtures/selection.kicad_pcb` with KiCad 10.0.7
-(#37). A `.kicad_pro` was already present beside that board, so there it was
-rewritten, not created.
+"Seen live" now covers two observation sets: the file appeared when
+`kct route` ran through `run_kct_handoff` on
+`tests/fixtures/selection.kicad_pcb` with KiCad 10.0.7 on kicad-tools 0.24.0
+(#37), and it appeared in the direct 0.29.0 CLI runs of 2026-11-20 (issue
+#113). In the #37 runs a `.kicad_pro` was already present beside the board,
+so it was rewritten, not created; the 2026-11-20 runs started with none, and
+`kct route` created it.
 
 **The other allow-listed commands**, run with the output on the board itself
-(in place, or `-o {board}`), write only the board, apart from these opt-in
-cases:
+(in place, or `-o {board}`), write only the board — confirmed for `route-auto`
+on 0.29.0 (2026-11-20, issue #113: the in-place run wrote the board and
+nothing else); the rest keeps its 0.24.0 source-read provenance — apart from
+these opt-in cases:
 
 - `route-auto --checkpoint <file>` writes the checkpoint board and its
   `.checkpoint.json` at the path you give. `run_kct_handoff` refuses
@@ -530,21 +552,24 @@ itself may write.
 What to do with them:
 
 - **Keep.** `kct check` and later `kct` runs read these files. For example,
-  `kct check` reads `fab_profile.json` and `net_class_map.json` to check against
+  `kct check` reads the fab-profile and net-class-map sidecars to check against
   the same manufacturer tier and net classes as the route. Keeping them is a
   valid choice.
-- **Ignore.** Add the generated names to `.gitignore`:
+- **Ignore.** Add the generated names to `.gitignore` (0.29.0 names; 0.24.0
+  wrote bare `fab_profile.json` / `net_class_map.json`):
 
   ```gitignore
   *.route.json
   *.routing_plan.json
   *.access_witness.json
+  *.decisions.json
   *.search_failures.json
   *.timeout.json
-  fab_profile.json
-  net_class_map.json
+  *.fab_profile.json
+  *.net_class_map.json
   net_class_map.effective.json
   current_paths*.json
+  *.kicad_prl
   *_partial.kicad_pcb
   *.lint-rejected.kicad_pcb
   *.failed-*.kicad_pcb
