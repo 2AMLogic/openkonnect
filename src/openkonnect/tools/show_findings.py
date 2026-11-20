@@ -236,13 +236,6 @@ def _miss_reason(index: BoardIndex, kind: str, name: str) -> tuple[str, str]:
     return "net_not_on_board", f"No net {name} on the board (renamed or removed?)."
 
 
-def _contains(box: dict[str, int] | None, x: int, y: int) -> bool:
-    if not box:
-        return False
-    t = TOLERANCE_NM
-    return box["x0_nm"] - t <= x <= box["x1_nm"] + t and box["y0_nm"] - t <= y <= box["y1_nm"] + t
-
-
 def _area(box: dict[str, int]) -> int:
     return (box["x1_nm"] - box["x0_nm"]) * (box["y1_nm"] - box["y0_nm"])
 
@@ -267,6 +260,26 @@ def _intersects(box: dict[str, int], x0: int, y0: int, x1: int, y1: int) -> bool
         and box["y0_nm"] - t <= y1
         and y0 <= box["y1_nm"] + t
     )
+
+
+def _smallest_hits(
+    index: BoardIndex, x0: int, y0: int, x1: int, y1: int, layer: str | None
+) -> list[dict[str, Any]]:
+    """Every item tied for the smallest bounding box meeting the bounds.
+
+    The one spatial selection rule for both locator shapes: a point is the
+    bounds (x, y, x, y), which the intersection predicate treats exactly as
+    containment of the point. Tied items keep board order.
+    """
+    hits = [
+        i
+        for i in index.all_items()
+        if i.get("bbox_nm") and _intersects(i["bbox_nm"], x0, y0, x1, y1) and _on_layer(i, layer)
+    ]
+    if not hits:
+        return []
+    smallest = min(_area(i["bbox_nm"]) for i in hits)
+    return [i for i in hits if _area(i["bbox_nm"]) == smallest]
 
 
 NO_POINT_NOTE = (
@@ -340,6 +353,17 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
     def take(item: dict[str, Any]) -> None:
         if item.get("id"):
             chosen.setdefault(item["id"], item)
+
+    def record(items: list[dict[str, Any]]) -> int:
+        for i in items:
+            take(i)
+            if i["kind"] == "footprint":
+                footprints.add(i["ref"])
+            elif i["kind"] == "pad" and pad_name(i):
+                pads.add(pad_name(i))
+            elif i.get("net"):
+                nets.add(i["net"])
+        return len(items)
 
     for loc in locs:
         if loc.kind in ("point", "bbox"):
@@ -415,15 +439,9 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
                 for i in chosen.values()
             )
         else:
-            hits = [
-                i
-                for i in index.all_items()
-                if i.get("bbox_nm")
-                and _intersects(i["bbox_nm"], x0, y0, x1, y1)
-                and _on_layer(i, loc.layer)
-            ]
             entry["used_for"] = "resolve"
-            if not hits:
+            selected = _smallest_hits(index, x0, y0, x1, y1, loc.layer)
+            if not selected:
                 entry["reason"] = "empty_area"
                 unresolved.append(
                     {
@@ -433,17 +451,7 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
                     }
                 )
             else:
-                smallest = min(_area(i["bbox_nm"]) for i in hits)
-                for i in hits:
-                    if _area(i["bbox_nm"]) == smallest:
-                        take(i)
-                        if i["kind"] == "footprint":
-                            footprints.add(i["ref"])
-                        elif i["kind"] == "pad" and pad_name(i):
-                            pads.add(pad_name(i))
-                        elif i.get("net"):
-                            nets.add(i["net"])
-                entry["resolved_to"] = len([i for i in hits if _area(i["bbox_nm"]) == smallest])
+                entry["resolved_to"] = record(selected)
                 named = True
         points.append(entry)
 
@@ -451,23 +459,17 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
         if loc.kind != "point":
             continue
         entry = loc.to_dict()
-        x, y = loc.value
-        placed = (_nm(x), _nm(y))
-        x, y = placed
+        x, y = (_nm(c) for c in loc.value)
         entry["file_mm"] = {"x_mm": x / NM_PER_MM, "y_mm": y / NM_PER_MM}
         if named:
             entry["used_for"] = "check"
             entry["within_resolved_items"] = any(
-                _contains(i.get("bbox_nm"), x, y) for i in chosen.values()
+                i.get("bbox_nm") and _intersects(i["bbox_nm"], x, y, x, y) for i in chosen.values()
             )
         else:
-            hits = [
-                i
-                for i in index.all_items()
-                if i.get("bbox_nm") and _contains(i["bbox_nm"], x, y) and _on_layer(i, loc.layer)
-            ]
             entry["used_for"] = "resolve"
-            if not hits:
+            selected = _smallest_hits(index, x, y, x, y, loc.layer)
+            if not selected:
                 entry["reason"] = "empty_area"
                 unresolved.append(
                     {
@@ -477,17 +479,7 @@ def resolve(index: BoardIndex, locs: list[F.Locator]) -> dict[str, Any]:
                     }
                 )
             else:
-                smallest = min(_area(i["bbox_nm"]) for i in hits)
-                for i in hits:
-                    if _area(i["bbox_nm"]) == smallest:
-                        take(i)
-                        if i["kind"] == "footprint":
-                            footprints.add(i["ref"])
-                        elif i["kind"] == "pad" and pad_name(i):
-                            pads.add(pad_name(i))
-                        elif i.get("net"):
-                            nets.add(i["net"])
-                entry["resolved_to"] = len([i for i in hits if _area(i["bbox_nm"]) == smallest])
+                entry["resolved_to"] = record(selected)
         points.append(entry)
 
     if not chosen and not nets:
