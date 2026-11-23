@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import anyio
 from mcp.server.fastmcp import FastMCP
@@ -112,7 +112,7 @@ def build_server(session: Session | None = None) -> FastMCP:
         structured_output=False,
     )
     async def list_footprints(
-        refs: list[str] | None = None,
+        refs: list[str] | Literal[""] | None = None,
         side: str | None = None,
         box: dict[str, Any] | None = None,
         selected_only: bool = False,
