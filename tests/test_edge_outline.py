@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -403,6 +404,18 @@ def _kct_install_kind() -> str | None:
     except ValueError:
         return None
     return "upstream" if isinstance(direct, dict) and "vcs_info" in direct else None
+
+
+@pytest.mark.skipif(
+    not os.environ.get("CI"),
+    reason="a local install may be an editable checkout, which skips the origin pair (#146)",
+)
+def test_kct_install_kind_is_determinable_in_ci():
+    """Guards the canary pair below: if the install kind cannot be told in CI (a
+    ``uv`` change in how it records installs, the ``kicad-tools-main`` job changing
+    install method, a vendored checkout), both origin tests would skip, every job
+    stays green and the canary goes silently dead. Fail instead (#146)."""
+    assert _kct_install_kind() in {"locked", "upstream"}
 
 
 # Operator ruling on #136 (option ``follow``): the two tests below are the canary
