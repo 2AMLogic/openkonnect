@@ -12,7 +12,15 @@ from typing import Any
 
 from .. import errors as E
 from ..session import Session
-from .common import board_point_mm, frame_offset, parse_box, point_in_box, point_mm, require_board
+from .common import (
+    board_point_mm,
+    frame_offset,
+    parse_box,
+    point_in_box,
+    point_mm,
+    require_board,
+    str_list,
+)
 
 DESCRIPTION = (
     "List the footprints on the open board, live (unsaved changes included): refdes, "
@@ -38,13 +46,14 @@ def side_of(layer: str | None) -> str | None:
 
 
 def parse_refs(refs: Any) -> set[str] | None:
-    if refs is None:
-        return None
-    if isinstance(refs, str):
-        refs = [refs]
-    if not isinstance(refs, (list, tuple)) or not all(isinstance(r, str) for r in refs):
-        raise E.invalid_argument("refs must be a list of reference designators.")
-    return set(refs)
+    """The ``refs`` argument as a set of refdes.
+
+    ``[]`` and ``""`` keep today's answers (an empty set, and the empty string
+    as a refdes) — provisional until #142 rules what an empty filter value
+    means.
+    """
+    items = str_list("refs", refs, message="refs must be a list of reference designators.")
+    return None if items is None else set(items)
 
 
 def parse_side(side: Any) -> str | None:

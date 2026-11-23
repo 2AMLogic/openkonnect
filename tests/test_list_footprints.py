@@ -55,6 +55,37 @@ def test_refs_filter_and_empty_match():
     assert r["ok"] is True and r["footprints"] == [] and r["count"] == 0
 
 
+def test_empty_refs_list_matches_nothing():
+    # Characterization, provisional until #142 rules what an empty filter value
+    # means: refs=[] answers ok with count 0, not "no filter".
+    r = run(EditorFake(), refs=[])
+    assert r["ok"] is True and r["count"] == 0 and r["footprints"] == []
+    assert r["filters"]["refs"] == []
+    assert r["refs_not_on_board"] == []
+
+
+def test_empty_refs_string_is_a_refdes():
+    # Characterization, provisional until #142: '' passes as a reference
+    # designator and matches nothing on the board.
+    r = run(EditorFake(), refs="")
+    assert r["ok"] is True and r["count"] == 0 and r["footprints"] == []
+    assert r["filters"]["refs"] == [""]
+    assert r["refs_not_on_board"] == [""]
+
+
+def test_refs_accepts_a_bare_string_and_a_tuple():
+    assert refs(run(EditorFake(), refs="R1")) == ["R1"]
+    assert refs(run(EditorFake(), refs=("R1", "R2"))) == ["R1", "R2"]
+
+
+def test_refs_type_errors_keep_message_and_details():
+    for bad in (5, [1], ["R1", 2]):
+        r = run(EditorFake(), refs=bad)
+        assert r["error"]["code"] == "invalid_argument", bad
+        assert r["error"]["message"] == "refs must be a list of reference designators."
+        assert r["error"]["details"] == {}
+
+
 def _two_sided():
     index = selection_board_index()
     fp = index["footprints"][1]  # R2 goes to the back
