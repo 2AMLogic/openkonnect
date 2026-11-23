@@ -8,6 +8,7 @@ returns stroke-inflated boxes, so a return to the old union fails here.
 
 from __future__ import annotations
 
+import json
 import math
 from pathlib import Path
 from types import SimpleNamespace
@@ -383,12 +384,56 @@ def test_board_summary_on_the_fp_edge_board_matches_kct_origin():
     assert "footprint Edge.Cuts graphics excluded" in o["basis"]
 
 
+def _kct_install_kind() -> str | None:
+    """How kicad-tools is installed: ``"locked"`` (the released, pinned wheel),
+    ``"upstream"`` (built from a git ref, as the ``kicad-tools-main`` job does) or
+    ``None`` when that cannot be told (missing distribution, unreadable or
+    unrecognised ``direct_url.json``, e.g. a local checkout). ``None`` skips both
+    origin tests below rather than failing either."""
+    from importlib import metadata
+
+    try:
+        raw = metadata.distribution("kicad-tools").read_text("direct_url.json")
+    except metadata.PackageNotFoundError:
+        return None
+    if raw is None:
+        return "locked"  # a registry install records no direct_url.json
+    try:
+        direct = json.loads(raw)
+    except ValueError:
+        return None
+    return "upstream" if isinstance(direct, dict) and "vcs_info" in direct else None
+
+
+# Operator ruling on #136 (option ``follow``): the two tests below are the canary
+# half. With the locked release (0.29.x) the origin stays (100, 50); upstream main
+# (bd0c1dd1 and later) returns (95, 45). Follow-up on adopting a kicad-tools release
+# that carries that change: flip the locked expectation, then switch the live
+# outline geometry, frame offsets, board_summary basis text and spec C-1 together.
+@pytest.mark.skipif(
+    _kct_install_kind() != "locked",
+    reason="needs the locked kicad-tools release; this install is upstream or unknown (#136)",
+)
 def test_kct_board_origin_ignores_footprint_edge_cuts_graphics():
-    """Pins kicad-tools' side: if upstream starts counting footprint Edge.Cuts
-    graphics, the frames would disagree and this fails (kicad-tools-main CI)."""
+    """Pins kicad-tools' side for the locked release: if it starts counting
+    footprint Edge.Cuts graphics, the frames would disagree and this fails."""
     from kicad_tools.schema.pcb import PCB
 
     assert PCB.load(str(FP_EDGE_BOARD)).board_origin == (100.0, 50.0)
+
+
+@pytest.mark.skipif(
+    _kct_install_kind() != "upstream",
+    reason="needs kicad-tools installed from git (the kicad-tools-main job); "
+    "this is the locked release or an unknown install (#136)",
+)
+def test_kct_upstream_board_origin_counts_footprint_edge_cuts_graphics():
+    """Characterizes upstream kicad-tools main: footprint-owned Edge.Cuts graphics
+    move the board origin to (95, 45). Fails again if upstream changes it a
+    second time (kicad-tools-main CI)."""
+    from kicad_tools.schema.pcb import PCB
+
+    assert PCB.load(str(FP_EDGE_BOARD)).board_origin == (95.0, 45.0)
 
 
 # -- through the tools -------------------------------------------------------------
