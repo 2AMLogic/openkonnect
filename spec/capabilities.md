@@ -838,14 +838,17 @@ state, including unsaved changes. Every edit follows C-6.
   **From:** ROADMAP Phase 1
 - **Purpose:** list the footprints on the board, with what an agent needs in
   order to reason about placement.
-- **Inputs:** optional filters: refs, side, inside a box, selected only.
+- **Inputs:** optional filters: refs, side, inside a box, selected only. An
+  empty `refs` (`[]` or `""`) is no reference filter, the same as omitting it.
 - **Outputs:** per footprint:
   - refdes, value and library ID;
   - position (C-1 frames), rotation, side and locked state;
   - attributes (for example do-not-populate, or excluded from the BOM);
   - fields.
 - **Failure modes:** `no_document`. A filter that matches nothing returns an
-  empty list.
+  empty list. That happens when an explicit filter (a non-empty `refs`, `side`,
+  `box` or `selected_only`) excludes every footprint; `refs_not_on_board` then
+  names any requested reference that is absent.
 - **Sources:** P-D3, P-T7.
 - **As built:** `box` must name its `frame` (`file` or `board`, C-1) and keeps
   footprints whose position lies inside it. Any value kipy does not supply on

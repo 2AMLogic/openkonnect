@@ -146,3 +146,38 @@ def test_list_footprints_over_mcp():
     _, result = _call(make_session(EditorFake()), "list_footprints")
     assert result.isError is False
     assert [f["ref"] for f in result.structuredContent["footprints"]] == ["R1", "R2", "R3"]
+
+
+def _call_with(session, tool: str, arguments: dict):
+    async def go():
+        server = build_server(session)
+        async with create_connected_server_and_client_session(server._mcp_server) as client:
+            return await client.call_tool(tool, arguments)
+
+    return anyio.run(go)
+
+
+def test_list_footprints_over_mcp_treats_empty_refs_as_omitted():
+    omitted = _call_with(make_session(EditorFake()), "list_footprints", {})
+    assert omitted.isError is False
+    assert omitted.structuredContent["count"] == 3
+    assert "refs_not_on_board" not in omitted.structuredContent
+    for arguments in ({"refs": None}, {"refs": []}, {"refs": ""}):
+        result = _call_with(make_session(EditorFake()), "list_footprints", arguments)
+        assert result.isError is False, (arguments, result.content)
+        # meta carries per-call timing, so compare the rest of the payload
+        got = {k: v for k, v in result.structuredContent.items() if k != "meta"}
+        want = {k: v for k, v in omitted.structuredContent.items() if k != "meta"}
+        assert got == want, arguments
+        assert result.structuredContent["filters"]["refs"] is None
+
+
+def test_list_footprints_over_mcp_keeps_explicit_refs_and_validation():
+    result = _call_with(make_session(EditorFake()), "list_footprints", {"refs": ["U9"]})
+    assert result.isError is False
+    assert result.structuredContent["count"] == 0
+    assert result.structuredContent["refs_not_on_board"] == ["U9"]
+    # the schema admits the empty string only, not other scalar strings or malformed input
+    for bad in ("R1", 7, [1]):
+        result = _call_with(make_session(EditorFake()), "list_footprints", {"refs": bad})
+        assert result.isError is True, bad

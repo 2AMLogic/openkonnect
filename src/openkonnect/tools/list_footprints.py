@@ -3,7 +3,8 @@
 Reads the editor's own state, unsaved changes included. Coordinates are in mm in
 the ``file`` frame, with the ``board`` frame position beside it and the offset
 between the two (C-1). A field KiCad 10's IPC API does not supply is ``null``,
-never guessed. A filter that matches nothing gives an empty list.
+never guessed. A filter that matches nothing gives an empty list; an empty ``refs``
+(``[]`` or ``""``) is no reference filter at all, the same as leaving it out.
 """
 
 from __future__ import annotations
@@ -23,7 +24,10 @@ DESCRIPTION = (
     "filters: refs (reference designators), side ('front'|'back'), box "
     "({x0_mm, y0_mm, x1_mm, y1_mm, frame: 'file'|'board'}; the frame is required; "
     "keeps footprints whose position is inside), selected_only (only what is selected "
-    "in the editor). A filter matching nothing is an empty list."
+    'in the editor). An empty refs ([] or "") means no reference filter, the same as '
+    "omitting it. A filter matching nothing is an empty list: that happens when an "
+    "explicit filter (a non-empty refs, a side, a box or selected_only) excludes every "
+    "footprint, and refs_not_on_board names any requested reference that is absent."
 )
 
 SIDES = ("front", "back")
@@ -38,7 +42,8 @@ def side_of(layer: str | None) -> str | None:
 
 
 def parse_refs(refs: Any) -> set[str] | None:
-    if refs is None:
+    # An empty value is "no reference filter", before a bare string becomes a list.
+    if refs is None or refs == "" or (isinstance(refs, (list, tuple)) and not refs):
         return None
     if isinstance(refs, str):
         refs = [refs]

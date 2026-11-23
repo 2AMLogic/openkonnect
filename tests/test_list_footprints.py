@@ -55,6 +55,42 @@ def test_refs_filter_and_empty_match():
     assert r["ok"] is True and r["footprints"] == [] and r["count"] == 0
 
 
+EMPTY_REFS = [None, [], "", ()]
+
+
+def without_meta(r):
+    """The payload minus ``meta``, which carries per-call timing."""
+    return {k: v for k, v in r.items() if k != "meta"}
+
+
+def test_empty_refs_is_the_same_as_omitting_the_filter():
+    omitted = run(EditorFake())
+    assert refs(omitted) == ["R1", "R2", "R3"]
+    assert omitted["count"] == 3
+    assert omitted["filters"]["refs"] is None
+    assert "refs_not_on_board" not in omitted
+    for empty in EMPTY_REFS:
+        assert without_meta(run(EditorFake(), refs=empty)) == without_meta(omitted), repr(empty)
+
+
+def test_empty_refs_clears_only_the_reference_filter():
+    fake = _two_sided()
+    for empty in EMPTY_REFS:
+        r = run(fake, refs=empty, side="back")
+        assert refs(r) == ["R2"], repr(empty)
+        assert r["filters"]["refs"] is None
+        assert "refs_not_on_board" not in r
+
+
+def test_bare_string_ref_and_whitespace_are_still_explicit_filters():
+    r = run(EditorFake(), refs="R1")
+    assert refs(r) == ["R1"] and r["filters"]["refs"] == ["R1"]
+    r = run(EditorFake(), refs=[""] + ["R1"])
+    assert refs(r) == ["R1"] and r["refs_not_on_board"] == [""]
+    r = run(EditorFake(), refs=[" "])
+    assert r["footprints"] == [] and r["refs_not_on_board"] == [" "]
+
+
 def _two_sided():
     index = selection_board_index()
     fp = index["footprints"][1]  # R2 goes to the back
