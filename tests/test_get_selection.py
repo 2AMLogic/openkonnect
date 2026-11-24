@@ -7,7 +7,7 @@ from kipy.proto.board import board_types_pb2
 from kipy.proto.common.commands import editor_commands_pb2 as ed
 from kipy.proto.common.types import base_types_pb2
 
-from openkonnect.backend import _boxes, _describe, _kind_of, _read_selection
+from openkonnect.backend import SELECTION_KINDS, _boxes, _describe, _kind_of, _read_selection
 from openkonnect.tools.get_selection import get_selection
 
 from .conftest import EditorFake, FakeBackend, make_session
@@ -97,6 +97,27 @@ def test_kind_filter_is_passed_through_and_validated():
     assert bad["ok"] is False
     assert bad["error"]["code"] == "invalid_argument"
     assert bad["error"]["details"]["unknown"] == ["teapot"]
+
+
+def test_empty_kinds_list_is_no_filter():
+    # Characterization, provisional until #142 rules what an empty filter value
+    # means: kinds=[] is the same as omitting the argument, unlike refs=[] in
+    # list_footprints.
+    fake = EditorFake()
+    fake.selected = [fake.id_of("R1"), "trk-1"]
+    r = run(fake, kinds=[])
+    assert r["ok"] is True
+    assert "kinds" not in r
+    assert r["footprints"] == ["R1"]
+    assert [o["kind"] for o in r["other"]] == ["track"]
+
+
+def test_kinds_type_errors_keep_message_and_details():
+    for bad in (5, [1], ["footprint", 2]):
+        r = run(EditorFake(), kinds=bad)
+        assert r["error"]["code"] == "invalid_argument", bad
+        assert r["error"]["message"] == "kinds must be a list of item kinds."
+        assert r["error"]["details"] == {"allowed": list(SELECTION_KINDS)}
 
 
 def test_no_board_open_is_no_document():

@@ -14,7 +14,15 @@ from typing import Any
 from .. import errors as E
 from ..backend import SELECTION_KINDS
 from ..session import Session
-from .common import box_mm, frame_offset, pad_name, point_mm, require_board, union_box
+from .common import (
+    box_mm,
+    frame_offset,
+    pad_name,
+    point_mm,
+    require_board,
+    str_list,
+    union_box,
+)
 
 DESCRIPTION = (
     "Read what is selected in KiCad's PCB editor, live, as stable file-level references "
@@ -30,20 +38,21 @@ DESCRIPTION = (
 
 
 def parse_kinds(kinds: Any) -> list[str] | None:
+    """The ``kinds`` argument as a deduped list; ``None`` or ``[]`` means no filter."""
     if kinds is None or kinds == []:
         return None
-    if isinstance(kinds, str):
-        kinds = [kinds]
-    if not isinstance(kinds, (list, tuple)) or not all(isinstance(k, str) for k in kinds):
-        raise E.invalid_argument(
-            "kinds must be a list of item kinds.", allowed=list(SELECTION_KINDS)
-        )
-    bad = [k for k in kinds if k not in SELECTION_KINDS]
+    items = str_list(
+        "kinds",
+        kinds,
+        message="kinds must be a list of item kinds.",
+        allowed=list(SELECTION_KINDS),
+    )
+    bad = [k for k in items if k not in SELECTION_KINDS]
     if bad:
         raise E.invalid_argument(
             f"Unknown item kind(s): {', '.join(bad)}.", unknown=bad, allowed=list(SELECTION_KINDS)
         )
-    return list(dict.fromkeys(kinds))
+    return list(dict.fromkeys(items))
 
 
 def describe_selection(data: dict[str, Any], include_geometry: bool = False) -> dict[str, Any]:

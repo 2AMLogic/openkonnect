@@ -231,6 +231,10 @@ def test_schematic_unverified_ok_records_the_assertion(tmp_path):
 def test_bad_documents_argument(tmp_path):
     r = save(make_session(SyncFake(board_on_disk(tmp_path))), documents="footprint")
     assert r["error"]["code"] == "invalid_argument"
+    # Characterization, provisional until #142 rules what an empty filter value
+    # means: documents=[] is invalid_argument, the same as an unknown name.
+    r = save(make_session(SyncFake(board_on_disk(tmp_path))), documents=[])
+    assert r["error"]["code"] == "invalid_argument"
 
 
 # -- SES-07 fail fast ---------------------------------------------------------------

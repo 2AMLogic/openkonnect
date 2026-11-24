@@ -44,6 +44,15 @@ def test_net_filter():
     assert r["filters"] == {"net": "GND"}
 
 
+def test_empty_net_filter_is_no_filter():
+    # Characterization, provisional until #142 rules what an empty filter value
+    # means: '' is the same as omitting the argument, not a name that matches
+    # nothing.
+    r = run(EditorFake(), net="")
+    assert r["ok"] is True and r["count"] == 2
+    assert "filters" not in r
+
+
 def test_layer_filter():
     assert [z["id"] for z in run(EditorFake(), layer="B.Cu")["zones"]] == ["zone-1"]
     assert run(EditorFake(), layer="F.Cu")["count"] == 2
