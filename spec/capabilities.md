@@ -1628,11 +1628,11 @@ copied.
 
 | ID | Source | URL | Used for |
 |----|--------|-----|----------|
-| P-R1 | openkonnect ROADMAP | https://github.com/rjwalters/openkonnect/blob/main/ROADMAP.md | Areas, phases, principles |
-| P-R2 | openkonnect #4 (session and file sync) | https://github.com/rjwalters/openkonnect/issues/4 | SES-01, SES-04 to SES-07 |
-| P-R3 | openkonnect #5 (selection and findings) | https://github.com/rjwalters/openkonnect/issues/5 | SES-08 to SES-10 |
-| P-R4 | openkonnect #6 (kicad-tools boundary) | https://github.com/rjwalters/openkonnect/issues/6 | Classification rule, two-engine sign-off |
-| P-R5 | openkonnect #7 (KiCAD-MCP-Server, IPC-only) | https://github.com/rjwalters/openkonnect/issues/7 | IPC-only scope, use of its docs |
+| P-R1 | openkonnect ROADMAP | https://github.com/2AMLogic/openkonnect/blob/main/ROADMAP.md | Areas, phases, principles |
+| P-R2 | openkonnect #4 (session and file sync) | https://github.com/2AMLogic/openkonnect/issues/4 | SES-01, SES-04 to SES-07 |
+| P-R3 | openkonnect #5 (selection and findings) | https://github.com/2AMLogic/openkonnect/issues/5 | SES-08 to SES-10 |
+| P-R4 | openkonnect #6 (kicad-tools boundary) | https://github.com/2AMLogic/openkonnect/issues/6 | Classification rule, two-engine sign-off |
+| P-R5 | openkonnect #7 (KiCAD-MCP-Server, IPC-only) | https://github.com/2AMLogic/openkonnect/issues/7 | IPC-only scope, use of its docs |
 | P-C1 | Konnect public README (repo archived 2026-10-26) | https://github.com/mixelpixx/Konnect/blob/main/README.md | Overall capability areas; KiCad 10 setup notes (enabling the API); that some board edits need a recent 10.0.x |
 | P-C2 | Konnect published tool catalogue, `tool-directory.md` | https://github.com/mixelpixx/Konnect/blob/main/tool-directory.md | Tool names and one-line purposes, read as a checklist of capability areas. Only the tables of names and purposes were read. The page links to source files; those links were not followed, and its "Implementation notes" appendix was not read |
 | P-C3 | Konnect repository metadata (archived, AGPL-3.0, description) | https://github.com/mixelpixx/Konnect | Licence and archive status |

@@ -16,7 +16,7 @@ through KiCad's IPC API.
 newer.
 
 ```bash
-git clone https://github.com/rjwalters/openkonnect
+git clone https://github.com/2AMLogic/openkonnect
 cd openkonnect
 uv sync
 uv run openkonnect --version
