@@ -169,12 +169,17 @@ def validate_command(command: Any) -> list[str]:
 
 
 #: Flags that make kct write somewhere other than the open board (issue #59):
-#: ``--checkpoint`` writes extra state files. ``--auto-layers`` is refused too; in
-#: kicad-tools 0.24.0 it is on by default and honors the output path exactly
-#: (no ``_4layer`` file), so the refusal is a harmless guard against older
-#: versions that wrote ``<stem>_4layer.kicad_pcb``. Refused outright, but only on the
-#: subcommands that define them, so a valid abbreviation of some other flag on
-#: another subcommand (``fix-vias --c 1`` is ``--copper``) is not refused.
+#: ``--checkpoint`` writes extra state files. ``--auto-layers`` is refused too;
+#: in kicad-tools 0.29.0 (observed 2026-11-20, issue #113) it is on by default,
+#: and an explicit ``--auto-layers`` with ``-o {board}`` writes the open board
+#: in place exactly, with no ``_4layer`` file — as 0.24.0 already did (the
+#: fixture routes at 2 layers, so escalation itself never ran; that path keeps
+#: its 0.24.0 observation and upstream #2809). The refusal is therefore a cheap
+#: guard, not a correctness need: escalation writes were version-volatile
+#: historically (pre-0.24 versions wrote ``<stem>_4layer.kicad_pcb``). Refused
+#: outright, but only on the subcommands that define them, so a valid
+#: abbreviation of some other flag on another subcommand (``fix-vias --c 1`` is
+#: ``--copper``) is not refused.
 REDIRECT_FLAGS: dict[str, frozenset[str]] = {
     "--auto-layers": frozenset({"route"}),
     "--checkpoint": frozenset({"route", "route-auto", "optimize-placement"}),
@@ -187,9 +192,12 @@ _OUTPUT_LONG = "--output"
 _AMBIGUOUS_OUTPUT = "--o"
 
 #: Subcommands that do not write the board in place when ``-o`` is absent
-#: (issue #63), so a handoff must pass ``-o {board}``. In kicad-tools 0.24.0
-#: ``route`` writes ``<stem>_routed.kicad_pcb`` and ``route-auto`` saves nothing;
-#: every other allow-listed command writes the input board when ``-o`` is absent.
+#: (issue #63), so a handoff must pass ``-o {board}``. In kicad-tools 0.29.0
+#: (observed 2026-11-20, issue #113, on a fresh copy of
+#: ``tests/fixtures/selection.kicad_pcb``) ``route`` leaves the input board
+#: byte-identical and writes ``<stem>_routed.kicad_pcb`` beside it, and
+#: ``route-auto`` writes nothing at all — each exiting 0, as 0.24.0 did; every
+#: other allow-listed command writes the input board when ``-o`` is absent.
 REQUIRES_OUTPUT: frozenset[str] = frozenset({"route", "route-auto"})
 
 
@@ -228,12 +236,23 @@ def _check_output_flags(argv: list[str]) -> bool:
                 )
             for flag, subcommands in REDIRECT_FLAGS.items():
                 if subcommand in subcommands and _abbreviates(opt, flag):
-                    raise E.invalid_argument(
-                        f"{flag} makes kct write somewhere other than the open board, "
-                        "so the handoff would report success while KiCad's board is "
-                        "unchanged. It is not allowed in run_kct_handoff.",
-                        got=arg,
-                    )
+                    if flag == "--auto-layers":
+                        message = (
+                            "--auto-layers is refused as a conservative guard: "
+                            "kicad-tools 0.29.0 honors -o {board} with it (observed "
+                            "2026-11-20, #113), but older versions wrote "
+                            "<stem>_4layer.kicad_pcb beside the output, leaving "
+                            "KiCad's board unchanged. It is not allowed in "
+                            "run_kct_handoff."
+                        )
+                    else:
+                        message = (
+                            f"{flag} makes kct write somewhere other than the open "
+                            "board, so the handoff would report success while "
+                            "KiCad's board is unchanged. It is not allowed in "
+                            "run_kct_handoff."
+                        )
+                    raise E.invalid_argument(message, got=arg)
             if _abbreviates(opt, _OUTPUT_LONG):
                 value = inline if eq else (argv[i + 1] if i + 1 < len(argv) else None)
                 _check_output_value(arg, value)

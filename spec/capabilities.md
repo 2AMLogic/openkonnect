@@ -418,13 +418,17 @@ control, and grouping edits into transactions. Every entry here is live-editor.
   - a flag that makes the command write somewhere other than the open board
     gives `invalid_argument` before KiCad is contacted (#59): `--checkpoint`,
     `-o`/`--output` with any value other than exactly `{board}`, and
-    `--auto-layers` (kept as a guard: kicad-tools 0.24.0 honors the output
-    path with it, which is on by default);
+    `--auto-layers` (kept as a cheap guard: kicad-tools 0.29.0, observed
+    2026-11-20, #113, honors the output path with it — it is on by default —
+    as 0.24.0 already did; escalation writes were version-volatile
+    historically);
   - `route` or `route-auto` without `-o {board}` (or another spelling of it)
     gives `invalid_argument` before KiCad is contacted (#63): without it,
-    kicad-tools 0.24.0 `route` writes `<stem>_routed.kicad_pcb` and
-    `route-auto` saves nothing, so the open board would be unchanged. The
-    other allow-listed commands write the board in place without `-o`;
+    kicad-tools 0.29.0 `route` (observed 2026-11-20, #113) leaves the input
+    board byte-identical and writes `<stem>_routed.kicad_pcb` beside it, and
+    `route-auto` writes nothing at all, each exiting 0 with the open board
+    unchanged. The other allow-listed commands write the board in place
+    without `-o`;
   - a command that runs past the timeout is stopped. The file state is then
     reported as found, and the editor is not reloaded;
   - the user edits during step 3: step 6 refuses with `document_dirty`,
@@ -434,7 +438,7 @@ control, and grouping edits into transactions. Every entry here is live-editor.
 - **Test requirement (#4):** an end-to-end test wraps one real `kct` write,
   such as `kct route`, in this protocol against a fixture board open in
   KiCad.
-- **Sources:** P-R2, P-T7.
+- **Sources:** P-R2, P-T7, P-T12.
 
 ### SES-07 Fail-fast connection errors (contract)
 - **Class:** live-editor · **kicad-tools:** n/a · **KiCad:** 10.0 ·
@@ -1613,10 +1617,14 @@ G2, and MFG-03 on G4.
 Every source except P-T10 and P-T11 was accessed on **2026-10-27**; P-T10 was
 accessed on **2026-10-28** and P-T11 on **2026-11-14**. No black-box runs of
 Konnect or of any other project's binaries
-were made. The only commands run were kicad-tools' own CLI help (`kct`,
-version 0.24.0, MIT), for the "already in kicad-tools" column, and on
+were made. The commands run were kicad-tools' own CLI help (`kct`,
+version 0.24.0, MIT), for the "already in kicad-tools" column; on
 2026-10-28 `kct --version` and `kct pcb diff --help`, to confirm G3 resolved
-upstream and fill SES-12's kicad-tools column.
+upstream and fill SES-12's kicad-tools column; and on **2026-11-20** the
+`kct route` and `kct route-auto` CLI runs of P-T12 (kicad-tools 0.29.0, on
+fresh copies of this repo's `tests/fixtures/selection.kicad_pcb`), to
+re-derive SES-06's routing write-target and sidecar claims against the locked
+version (#113).
 
 **Attestation.** The author of this spec did not open, clone, search or recall
 the source code of mixelpixx/Konnect, its forks, or any AGPL or closed-source
@@ -1655,6 +1663,7 @@ copied.
 | P-T9 | kicad-tools #7991 (Freerouting runner), closed as not planned, with the operator's ruling of 2026-10-27 | https://github.com/rjwalters/kicad-tools/issues/7991 | RTE-09 out of scope, and G5 withdrawn: kct runs no external router, and boards it cannot route become router-gap reports |
 | P-T10 | kicad-tools `kct pcb diff --help` and package metadata, kicad-tools 0.24.0, plus kicad-tools #6417 (accessed 2026-10-28) | https://github.com/rjwalters/kicad-tools/issues/6417 | G3 resolved upstream; SES-12 kicad-tools column |
 | P-T11 | kicad-tools #8015 (G1), #8016 (G2) and #8017 (G4), closed as completed on 2026-10-27, with their closing PRs #8022, #8020 and #8018 and release-tag containment in kicad-tools 0.25.0 (accessed 2026-11-14) | https://github.com/rjwalters/kicad-tools/issues/8015 | G1, G2 and G4 resolved upstream |
+| P-T12 | kicad-tools 0.29.0 `kct route` / `kct route-auto` live CLI runs on fresh copies of this repo's `tests/fixtures/selection.kicad_pcb` (2026-11-20; no output argument, `-o` on the board, and explicit `--auto-layers`; recorded in openkonnect #113) | https://github.com/2AMLogic/openkonnect/issues/113 | SES-06 routing write-target and sidecar claims for 0.29.0 |
 
 **Unreachable or not used.**
 - `https://docs.kicad.org/kicad-python/` (2026-10-27) returned a page with no
