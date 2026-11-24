@@ -1663,7 +1663,7 @@ copied.
 | P-T9 | kicad-tools #7991 (Freerouting runner), closed as not planned, with the operator's ruling of 2026-10-27 | https://github.com/rjwalters/kicad-tools/issues/7991 | RTE-09 out of scope, and G5 withdrawn: kct runs no external router, and boards it cannot route become router-gap reports |
 | P-T10 | kicad-tools `kct pcb diff --help` and package metadata, kicad-tools 0.24.0, plus kicad-tools #6417 (accessed 2026-10-28) | https://github.com/rjwalters/kicad-tools/issues/6417 | G3 resolved upstream; SES-12 kicad-tools column |
 | P-T11 | kicad-tools #8015 (G1), #8016 (G2) and #8017 (G4), closed as completed on 2026-10-27, with their closing PRs #8022, #8020 and #8018 and release-tag containment in kicad-tools 0.25.0 (accessed 2026-11-14) | https://github.com/rjwalters/kicad-tools/issues/8015 | G1, G2 and G4 resolved upstream |
-| P-T12 | kicad-tools 0.29.0 `kct route` / `kct route-auto` live CLI runs on fresh copies of this repo's `tests/fixtures/selection.kicad_pcb` (2026-11-20; no output argument, `-o` on the board, and explicit `--auto-layers`; recorded in openkonnect #113) | https://github.com/rjwalters/openkonnect/issues/113 | SES-06 routing write-target and sidecar claims for 0.29.0 |
+| P-T12 | kicad-tools 0.29.0 `kct route` / `kct route-auto` live CLI runs on fresh copies of this repo's `tests/fixtures/selection.kicad_pcb` (2026-11-20; no output argument, `-o` on the board, and explicit `--auto-layers`; recorded in openkonnect #113) | https://github.com/2AMLogic/openkonnect/issues/113 | SES-06 routing write-target and sidecar claims for 0.29.0 |
 
 **Unreachable or not used.**
 - `https://docs.kicad.org/kicad-python/` (2026-10-27) returned a page with no

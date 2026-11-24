@@ -236,12 +236,23 @@ def _check_output_flags(argv: list[str]) -> bool:
                 )
             for flag, subcommands in REDIRECT_FLAGS.items():
                 if subcommand in subcommands and _abbreviates(opt, flag):
-                    raise E.invalid_argument(
-                        f"{flag} makes kct write somewhere other than the open board, "
-                        "so the handoff would report success while KiCad's board is "
-                        "unchanged. It is not allowed in run_kct_handoff.",
-                        got=arg,
-                    )
+                    if flag == "--auto-layers":
+                        message = (
+                            "--auto-layers is refused as a conservative guard: "
+                            "kicad-tools 0.29.0 honors -o {board} with it (observed "
+                            "2026-11-20, #113), but older versions wrote "
+                            "<stem>_4layer.kicad_pcb beside the output, leaving "
+                            "KiCad's board unchanged. It is not allowed in "
+                            "run_kct_handoff."
+                        )
+                    else:
+                        message = (
+                            f"{flag} makes kct write somewhere other than the open "
+                            "board, so the handoff would report success while "
+                            "KiCad's board is unchanged. It is not allowed in "
+                            "run_kct_handoff."
+                        )
+                    raise E.invalid_argument(message, got=arg)
             if _abbreviates(opt, _OUTPUT_LONG):
                 value = inline if eq else (argv[i + 1] if i + 1 < len(argv) else None)
                 _check_output_value(arg, value)
