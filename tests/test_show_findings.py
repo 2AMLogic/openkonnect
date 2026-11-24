@@ -590,6 +590,70 @@ def test_bbox_is_preferred_over_point_when_no_name_resolves():
     assert box["used_for"] == "resolve"
 
 
+def test_bbox_miss_still_lets_the_point_resolve():
+    # The region is checked ahead of the point, but an empty region must not
+    # consume the attempt: the point still resolves the finding.
+    f = Finding(
+        rule_id="x",
+        severity="error",
+        message="",
+        point=[129.0, 65.0],
+        bbox=[101.0, 51.0, 102.0, 52.0],  # over bare board, overlaps nothing
+    )
+    r = show(EditorFake(), [f])
+    assert r["ok"] is True, r
+    [f] = r["findings"]
+    assert f["status"] == "partial"
+    assert f["resolved"]["pads"] == ["R3.1"]
+    assert f["unresolved"][0]["reason"] == "empty_area"
+    assert f["unresolved"][0]["message"] == BBOX_EMPTY_MESSAGE
+    box, point = f["points"]  # the bbox is processed (and reported) first
+    assert box["used_for"] == "resolve" and box["reason"] == "empty_area"
+    assert point["used_for"] == "resolve" and point["resolved_to"] == 1
+
+
+def test_point_tie_selects_every_equal_area_item():
+    # Two same-area tracks crossing at one bare spot: the selection rule must
+    # take both tied items, not one of them.
+    mm = 1_000_000
+    index = selection_board_index()
+    index["copper"] += [
+        {
+            "id": "tie-a",
+            "kind": "track",
+            "net": "TIE",
+            "layer": "F.Cu",
+            "bbox_nm": {  # 0.25 x 1.25 mm, through (105, 70)
+                "x0_nm": round(104.875 * mm),
+                "y0_nm": round(69.375 * mm),
+                "x1_nm": round(105.125 * mm),
+                "y1_nm": round(70.625 * mm),
+            },
+        },
+        {
+            "id": "tie-b",
+            "kind": "track",
+            "net": "TIE",
+            "layer": "F.Cu",
+            "bbox_nm": {  # 1.25 x 0.25 mm, the same area as tie-a
+                "x0_nm": round(104.375 * mm),
+                "y0_nm": round(69.875 * mm),
+                "x1_nm": round(105.625 * mm),
+                "y1_nm": round(70.125 * mm),
+            },
+        },
+    ]
+    f = Finding(rule_id="x", severity="error", message="", point=[105.0, 70.0])
+    r = show(EditorFake(index), [f])
+    assert r["ok"] is True, r
+    [f] = r["findings"]
+    assert f["status"] == "resolved"
+    assert f["resolved"]["nets"] == ["TIE"]
+    assert f["resolved"]["item_count"] == 2
+    [p] = f["points"]
+    assert p["used_for"] == "resolve" and p["resolved_to"] == 2
+
+
 def test_bbox_with_resolving_names_is_checked_not_resolved():
     # Real kct drc findings carry names AND a bbox (upstream builds it with
     # _bbox_of(), which needs >= 2 points). The names resolve the finding;
