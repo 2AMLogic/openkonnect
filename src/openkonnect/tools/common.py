@@ -93,6 +93,48 @@ def check_str(name: str, value: Any) -> str | None:
     return value
 
 
+def str_list(
+    name: str,
+    value: Any,
+    *,
+    message: str,
+    required: bool = False,
+    strip: bool = False,
+    **details: Any,
+) -> list[str] | None:
+    """A string-or-list argument as a list of strings: the shared core only.
+
+    ``None`` passes through as ``None`` (with ``required`` it is rejected
+    instead), a bare string becomes a one-element list, and anything but a
+    list or tuple of strings is ``invalid_argument(message, **details)`` —
+    each caller's own message and details, named for its own argument.
+
+    This coercer does **not** decide what an empty value means: an empty list
+    and an empty string pass through untouched for the caller's tail to answer
+    (``parse_refs`` keeps ``[]`` matching nothing, ``parse_kinds`` keeps ``[]``
+    meaning no filter; #142 rules the fleet-wide answer). ``strip`` is the one
+    opt-in tail: entries are stripped, and an entry that strips to empty is
+    rejected, as the ``REF``/``REF.PAD`` argument requires.
+    """
+    from .. import errors as E
+
+    if value is None:
+        if required:
+            raise E.invalid_argument(message, **details)
+        return None
+    items = [value] if isinstance(value, str) else value
+    if not isinstance(items, (list, tuple)):
+        raise E.invalid_argument(message, **details)
+    out: list[str] = []
+    for item in items:
+        if not isinstance(item, str) or (strip and not item.strip()):
+            raise E.invalid_argument(message, **details)
+        out.append(item.strip() if strip else item)
+    if required and not out:
+        raise E.invalid_argument(message, **details)
+    return out
+
+
 _KINDS = ("board", "schematic", "all")
 
 

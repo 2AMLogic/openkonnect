@@ -64,6 +64,15 @@ def test_pattern_filter_is_a_case_sensitive_glob():
     assert r["filters"] == {"pattern": "NOPE*"}
 
 
+def test_empty_pattern_is_no_filter():
+    # Characterization, provisional until #142 rules what an empty filter value
+    # means: '' is the same as omitting the argument, not a glob that matches
+    # nothing.
+    r = run(EditorFake(), pattern="")
+    assert r["ok"] is True and r["count"] == 3
+    assert "filters" not in r
+
+
 def test_class_filter():
     r = run(EditorFake(), net_class="Power")
     assert [n["name"] for n in r["nets"]] == ["VIN"]

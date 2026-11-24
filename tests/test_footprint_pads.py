@@ -111,9 +111,25 @@ def test_board_frame_is_omitted_without_an_outline():
 
 
 def test_refs_must_be_a_non_empty_list_of_strings():
-    for bad in (None, [], [1], [""], 5):
+    # Characterization, provisional until #142 rules what an empty filter value
+    # means: '' and [] are invalid_argument here, while list_footprints answers
+    # refs=[] with count 0.
+    for bad in (None, [], [1], [""], "", 5):
         r = run(EditorFake(), bad)
         assert r["error"]["code"] == "invalid_argument", bad
+        assert (
+            r["error"]["message"] == "refs must be a non-empty list of 'REF' or 'REF.PAD' values."
+        )
+        assert r["error"]["details"] == {}
+
+
+def test_entries_accept_a_bare_string_and_are_stripped():
+    assert [p["name"] for p in run(EditorFake(), "R1.2")["pads"]] == ["R1.2"]
+    assert [p["name"] for p in run(EditorFake(), [" R1.2 ", "R2 "])["pads"]] == [
+        "R1.2",
+        "R2.1",
+        "R2.2",
+    ]
 
 
 def test_no_document_when_no_board_is_open():

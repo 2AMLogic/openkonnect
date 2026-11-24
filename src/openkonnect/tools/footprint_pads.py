@@ -14,7 +14,7 @@ from typing import Any
 
 from .. import errors as E
 from ..session import Session
-from .common import board_point_mm, frame_offset, mm, point_mm, require_board
+from .common import board_point_mm, frame_offset, mm, point_mm, require_board, str_list
 
 DESCRIPTION = (
     "Resolve pads on the open board, live (unsaved changes included). refs is a list of "
@@ -29,13 +29,15 @@ DESCRIPTION = (
 
 def parse_entries(refs: Any) -> list[str]:
     """The ``refs`` argument as a list of non-empty strings; a bare string is one entry."""
-    if isinstance(refs, str):
-        refs = [refs]
-    if not isinstance(refs, (list, tuple)) or not refs:
-        raise E.invalid_argument("refs must be a non-empty list of 'REF' or 'REF.PAD' values.")
-    if not all(isinstance(r, str) and r.strip() for r in refs):
-        raise E.invalid_argument("refs must be a non-empty list of 'REF' or 'REF.PAD' values.")
-    return [r.strip() for r in refs]
+    entries = str_list(
+        "refs",
+        refs,
+        message="refs must be a non-empty list of 'REF' or 'REF.PAD' values.",
+        required=True,
+        strip=True,
+    )
+    assert entries is not None  # required=True rejects None
+    return entries
 
 
 def _resolve(entry: str, known: set[str]) -> tuple[str, str | None] | None:
