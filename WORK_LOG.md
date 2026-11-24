@@ -3,6 +3,26 @@
 Chronological record of merged pull requests and closed issues, newest first.
 Maintained by the Loom Guide role; entries are appended automatically.
 
+### 2026-11-24
+
+- **PR #149**: docs: repoint P-R1..P-R5 provenance URLs and README clone URL at 2AMLogic owner
+- **PR #143**: refactor: fold the string-or-list validator core into common.str_list
+- **PR #141**: refactor: share one smallest-item selection path for point and bbox locators
+- **PR #139**: test: share the selection-board opened fixture from tests/conftest.py
+- **PR #135**: docs: re-stamp kct route write-target claims with kicad-tools 0.29.0 runs
+- **Issue #148** (closed): spec/capabilities.md: P-R1..P-R5 provenance URLs point at a different repo
+- **Issue #140** (closed): Share the smallest-item selection rule for points and bounding boxes in show_findings
+- **Issue #138** (closed): Share the selection-board fixture across six live test modules
+- **Issue #113** (closed): Re-derive the kicad-tools 0.24 black-box `kct route` claims against the locked 0.29
+- **Issue #91** (closed): list_footprints(refs=[]) silently returns zero footprints: five string-list validators, three empty-value rules
+
+### 2026-11-23
+
+- **PR #147**: test: fail in CI when the kicad-tools install kind is undeterminable
+- **PR #145**: test: split kct board-origin pin into locked and upstream canary tests
+- **Issue #146** (closed): Guard against the kct board-origin canary silently skipping both tests
+- **Issue #136** (closed): kicad-tools-main canary red: test_kct_board_origin_ignores_footprint_edge_cuts_graphics (upstream now counts footprint Edge.Cuts)
+
 ### 2026-11-19
 
 - **PR #133**: chore: run Squad installer pass to v0.19.41 (wait alias, opencode adapter, metadata)
