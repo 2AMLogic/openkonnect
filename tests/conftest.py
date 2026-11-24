@@ -193,6 +193,20 @@ def live_session() -> Session:
     return session
 
 
+@pytest.fixture
+def opened(live_session):
+    """The live session, but only with the selection fixture board open.
+
+    Used only by ``live_kicad`` tests; skips unless KiCad has
+    ``tests/fixtures/selection.kicad_pcb`` open in the PCB editor.
+    """
+    r = live_session.run_tool(lambda s: {"boards": s.call(lambda b: b.open_boards())})
+    names = [os.path.basename(b.path) for b in r.get("boards") or [] if b.path]
+    if os.path.basename(SELECTION_BOARD) not in names:
+        pytest.skip(f"live_kicad: open {SELECTION_BOARD} in KiCad (open boards: {names})")
+    return live_session
+
+
 # -- a fake PCB editor with a selection (#5) --------------------------------------
 
 SELECTION_BOARD = os.path.join(os.path.dirname(__file__), "fixtures", "selection.kicad_pcb")
