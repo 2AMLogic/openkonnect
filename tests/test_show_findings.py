@@ -18,9 +18,9 @@ from kicad_tools.findings import SCHEMA_VERSION, Finding
 from kicad_tools.validate.violations import DRCViolation as LegacyViolation
 
 from openkonnect.board_state import file_state
+from openkonnect.kct import find_kct
 from openkonnect.tools import findings as F
 from openkonnect.tools.get_selection import get_selection
-from openkonnect.tools.run_kct_handoff import find_kct
 from openkonnect.tools.show_findings import (
     _POINT_MESSAGES,
     BBOX_EMPTY_MESSAGE,

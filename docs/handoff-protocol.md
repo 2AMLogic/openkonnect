@@ -437,7 +437,7 @@ The checklist and the existing live test (step 5) are the recorded check.
 token `{board}` is required, and is replaced by the open board's path, so the
 command writes the file KiCad has open. The first tokens must match the
 allow-list of known board-writing commands (`KCT_ALLOW_LIST` in
-`src/openkonnect/tools/run_kct_handoff.py`): `route`, `route-auto`,
+`src/openkonnect/kct.py`): `route`, `route-auto`,
 `optimize-traces`, `optimize-placement`, `stitch`, `zones add`, `zones batch`,
 `zones fill`, `fix-vias`, `fix-silkscreen`, `fix-footprints`, `fix-drc`,
 `repair-clearance` and `place-silk-refs`. Anything else gives

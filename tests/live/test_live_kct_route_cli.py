@@ -32,7 +32,7 @@ from pathlib import Path
 
 import pytest
 
-from openkonnect.tools.run_kct_handoff import find_kct
+from openkonnect.kct import find_kct
 
 from ..conftest import SELECTION_BOARD
 
