@@ -547,13 +547,14 @@ def staleness(session: Session, ref: Any, input_hash: str | None) -> dict[str, A
 
 
 def _focus_indices(
-    session: Session, focus: str | int, n: int, fingerprint: str
-) -> tuple[list[int], dict[str, Any]]:
+    session: Session, focus: str | int, n: int, items: list[Any]
+) -> tuple[range, dict[str, Any]]:
     if focus == "all":
-        return list(range(n)), {"requested": "all"}
+        return range(n), {"requested": "all"}
+    fingerprint = _fingerprint(items)
     if isinstance(focus, int):
         _CURSORS[session] = {"fingerprint": fingerprint, "index": focus}
-        return [focus], {"requested": focus, "index": focus}
+        return range(focus, focus + 1), {"requested": focus, "index": focus}
     cur = _CURSORS.get(session)
     same = cur is not None and cur["fingerprint"] == fingerprint
     wrapped = False
@@ -566,7 +567,7 @@ def _focus_indices(
         if i < 0:
             i, wrapped = n - 1, True
     _CURSORS[session] = {"fingerprint": fingerprint, "index": i}
-    return [i], {
+    return range(i, i + 1), {
         "requested": focus,
         "index": i,
         "wrapped": wrapped,
@@ -612,7 +613,7 @@ def show_findings(
     ref = require_board(session)
     index = BoardIndex(session.call(lambda b: b.board_index(ref)))
     stale = staleness(session, ref, input_hash)
-    focused, focus_info = _focus_indices(session, focus_v, len(items), _fingerprint(items))
+    focused, focus_info = _focus_indices(session, focus_v, len(items), items)
 
     per: list[dict[str, Any]] = []
     ids: list[str] = []
