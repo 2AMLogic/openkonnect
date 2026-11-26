@@ -27,13 +27,14 @@ _None._
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-_None._
+- **#157**: create-pr.sh exits 126 when the private defaults config exceeds the jq argument limit
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
 - **#142**: Treat empty list_footprints refs as an omitted filter
+- **#155**: Make mock save tests reliable when consecutive writes share a timestamp
 
 ## PRs Awaiting Review
 
@@ -45,7 +46,7 @@ PRs waiting on Judge (`loom:review-requested`).
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-_None._
+- **#156**: test: set a new mtime on byte-identical fake board saves
 
 ## Proposed
 
@@ -53,10 +54,12 @@ Issues carrying `loom:curated`.
 
 - **#113**: Re-derive the kicad-tools 0.24 black-box `kct route` claims against the locked 0.29 *(curated)*
 - **#142**: Treat empty list_footprints refs as an omitted filter *(curated)*
+- **#155**: Make mock save tests reliable when consecutive writes share a timestamp *(curated)*
+- **#157**: create-pr.sh exits 126 when the private defaults config exceeds the jq argument limit *(curated)*
 
 ## Proposed (Architect / Hermit)
 
-_None._
+- **#158**: Avoid building the footprint pad list discarded by the board index *(hermit)*
 
 ## Epics
 
@@ -69,11 +72,11 @@ _None._
 | Operator merge-risk holds | 0 |
 | Very important | 0 |
 | Important | 0 |
-| Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 1 |
+| Ready (`loom:issue`) | 1 |
+| In Progress (`loom:building`) | 2 |
 | PRs awaiting review | 1 |
-| Approved PRs awaiting merge | 0 |
-| Curated | 2 |
-| Architect / Hermit proposals | 0 |
+| Approved PRs awaiting merge | 1 |
+| Curated | 4 |
+| Architect / Hermit proposals | 1 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->

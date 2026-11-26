@@ -3,6 +3,11 @@
 Chronological record of merged pull requests and closed issues, newest first.
 Maintained by the Loom Guide role; entries are appended automatically.
 
+### 2026-11-26
+
+- **PR #154**: refactor: move dirty-state and fingerprint helpers to board_state
+- **Issue #153** (closed): Move board dirty-state and fingerprint helpers out of session.py
+
 ### 2026-11-24
 
 - **PR #149**: docs: repoint P-R1..P-R5 provenance URLs and README clone URL at 2AMLogic owner
