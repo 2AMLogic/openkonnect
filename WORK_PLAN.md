@@ -9,7 +9,7 @@ roadmap itself lives in [ROADMAP.md](ROADMAP.md).
 
 Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a human merge decision is missing.
 
-_None._
+- **#160**: chore(loom): resync installed Loom to v0.20.41
 
 ## Very Important
 
@@ -27,7 +27,7 @@ _None._
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-- **#157**: create-pr.sh exits 126 when the private defaults config exceeds the jq argument limit
+_None._
 
 ## In Progress
 
@@ -35,6 +35,8 @@ Issues currently being built (`loom:building`).
 
 - **#142**: Treat empty list_footprints refs as an omitted filter
 - **#155**: Make mock save tests reliable when consecutive writes share a timestamp
+- **#157**: create-pr.sh exits 126 when the private defaults config exceeds the jq argument limit
+- **#158**: Avoid building the footprint pad list discarded by the board index
 
 ## PRs Awaiting Review
 
@@ -47,6 +49,8 @@ PRs waiting on Judge (`loom:review-requested`).
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
 - **#156**: test: set a new mtime on byte-identical fake board saves
+- **#160**: chore(loom): resync installed Loom to v0.20.41
+- **#161**: perf: build the definition-pad list only in the selection path
 
 ## Proposed
 
@@ -59,7 +63,7 @@ Issues carrying `loom:curated`.
 
 ## Proposed (Architect / Hermit)
 
-- **#158**: Avoid building the footprint pad list discarded by the board index *(hermit)*
+_None._
 
 ## Epics
 
@@ -69,14 +73,14 @@ _None._
 
 | Bucket | Count |
 |------|-------|
-| Operator merge-risk holds | 0 |
+| Operator merge-risk holds | 1 |
 | Very important | 0 |
 | Important | 0 |
-| Ready (`loom:issue`) | 1 |
-| In Progress (`loom:building`) | 2 |
+| Ready (`loom:issue`) | 0 |
+| In Progress (`loom:building`) | 4 |
 | PRs awaiting review | 1 |
-| Approved PRs awaiting merge | 1 |
+| Approved PRs awaiting merge | 3 |
 | Curated | 4 |
-| Architect / Hermit proposals | 1 |
+| Architect / Hermit proposals | 0 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
