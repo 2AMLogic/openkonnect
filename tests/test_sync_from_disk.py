@@ -277,7 +277,8 @@ STATES = {
     "edited": (EDITED_TEXT, FILE_TEXT),
 }
 HASH_VALUES = [None, "garbage", sha(FILE_TEXT), sha(KCT_TEXT), sha(EDITED_TEXT)]
-HASH_ARGS = ("editor_hash", "editor_file_hash", "expected_hash")
+HASH_ARG_CANDIDATES = ("editor_hash", "editor_file_hash", "expected_hash")
+HASH_ARGS = tuple(arg for arg in HASH_ARG_CANDIDATES if arg in _SYNC_PARAMS)
 
 
 @pytest.mark.parametrize("state", list(STATES))
