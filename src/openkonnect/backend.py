@@ -552,10 +552,6 @@ def _describe(item: Any, kind: str, owners: dict[str, tuple[str, str]]) -> dict[
         d["ref"] = _footprint_ref(item)
         d["layer"] = _layer_name(item.layer)
         d["position_nm"] = _vec(item.position)
-        d["pads"] = [
-            {"id": p.id.value or None, "number": p.number, "net": _net_name(p.net)}
-            for p in item.definition.pads
-        ]
         d.update(_footprint_details(item))
     elif kind == "pad":
         owner = owners.get(d["id"] or "")
@@ -636,7 +632,13 @@ def _selection(self: KipyBackend, ref: BoardRef, kinds: list[str] | None = None)
     boxes = _boxes(client, ref.handle, items)
     described = []
     for item in items:
-        d = _describe(item, _kind_of(item) or "unknown", owners)
+        kind = _kind_of(item) or "unknown"
+        d = _describe(item, kind, owners)
+        if kind == "footprint":
+            d["pads"] = [
+                {"id": p.id.value or None, "number": p.number, "net": _net_name(p.net)}
+                for p in item.definition.pads
+            ]
         d["bbox_nm"] = boxes.get(d["id"] or "")
         described.append(d)
     _, outline = _edge_outline(board)
