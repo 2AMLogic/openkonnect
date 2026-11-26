@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..backend import client_api_version
+from ..kct import find_kct
 from ..session import Session
 from .common import (
     DIRTY_UNKNOWN_NOTE,
@@ -17,7 +18,6 @@ from .common import (
     board_document,
     inferred_schematic,
 )
-from .run_kct_handoff import find_kct
 
 DESCRIPTION = (
     "Report whether KiCad is running and its IPC API reachable, the KiCad and API "

@@ -19,8 +19,8 @@ import subprocess
 import pytest
 
 from openkonnect.board_state import file_state
+from openkonnect.kct import find_kct
 from openkonnect.tools.get_selection import get_selection
-from openkonnect.tools.run_kct_handoff import find_kct
 from openkonnect.tools.show_findings import show_findings
 
 from ..conftest import SELECTION_BOARD

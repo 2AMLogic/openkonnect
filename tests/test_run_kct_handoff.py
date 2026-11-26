@@ -10,12 +10,8 @@ from pathlib import Path
 import pytest
 
 from openkonnect.errors import OpenKonnectError
-from openkonnect.tools.run_kct_handoff import (
-    CommandResult,
-    default_runner,
-    run_kct_handoff,
-    validate_command,
-)
+from openkonnect.kct import CommandResult, default_runner, validate_command
+from openkonnect.tools.run_kct_handoff import run_kct_handoff
 
 from .conftest import make_session
 from .test_save_before_external_write import (

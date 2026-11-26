@@ -26,8 +26,9 @@ from pathlib import Path
 
 import pytest
 
+from openkonnect.kct import find_kct
 from openkonnect.kicad_text import canonical_comparison_applies
-from openkonnect.tools.run_kct_handoff import find_kct, run_kct_handoff
+from openkonnect.tools.run_kct_handoff import run_kct_handoff
 from openkonnect.tools.session_status import session_status
 from openkonnect.tools.sync_from_disk import sync_from_disk
 
