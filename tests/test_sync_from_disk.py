@@ -10,7 +10,7 @@ import pytest
 from kipy.errors import ApiError
 from kipy.proto.common import ApiStatusCode
 
-from openkonnect.session import board_dirty_state
+from openkonnect.board_state import board_dirty_state
 from openkonnect.tools.sync_from_disk import sync_from_disk
 
 from .conftest import make_session

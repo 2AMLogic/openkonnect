@@ -38,8 +38,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from .. import errors as E
+from ..board_state import file_state
 from ..errors import ErrorCode, OpenKonnectError
-from ..session import Session, file_state
+from ..session import Session
 from .common import open_boards_or_fail, parse_documents
 from .save_before_external_write import save_before_external_write
 from .sync_from_disk import UNDO_NOTE, sync_from_disk

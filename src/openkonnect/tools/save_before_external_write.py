@@ -3,7 +3,7 @@
 Run this before a file-based tool (``kct``) reads or writes a board that is
 open in KiCad. See ``docs/handoff-protocol.md``.
 
-Dirty state is the SES-01 tri-state (:func:`openkonnect.session.board_dirty_state`).
+Dirty state is the SES-01 tri-state (:func:`openkonnect.board_state.board_dirty_state`).
 ``unknown`` counts as dirty, so on KiCad 10 the board is usually saved only when
 the caller passes ``allow_save``. If any requested document is refused, nothing
 is saved.
@@ -15,10 +15,8 @@ from typing import Any
 
 from .. import errors as E
 from ..backend import BoardRef
-from ..errors import ErrorCode, OpenKonnectError
-from ..session import (
+from ..board_state import (
     DirtyState,
-    Session,
     bind_to_file,
     board_dirty_state,
     editor_match,
@@ -28,6 +26,8 @@ from ..session import (
     sha256_bytes,
     text_sha256,
 )
+from ..errors import ErrorCode, OpenKonnectError
+from ..session import Session
 from .common import inferred_schematic, open_boards_or_fail, parse_documents
 
 DESCRIPTION = (
