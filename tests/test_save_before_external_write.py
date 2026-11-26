@@ -16,7 +16,7 @@ import pytest
 from kipy.errors import ApiError
 from kipy.proto.common import ApiStatusCode
 
-from openkonnect.session import DirtyState
+from openkonnect.board_state import DirtyState
 from openkonnect.tools import save_before_external_write as save_mod
 from openkonnect.tools.save_before_external_write import save_before_external_write
 

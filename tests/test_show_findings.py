@@ -17,7 +17,7 @@ import pytest
 from kicad_tools.findings import SCHEMA_VERSION, Finding
 from kicad_tools.validate.violations import DRCViolation as LegacyViolation
 
-from openkonnect.session import file_state
+from openkonnect.board_state import file_state
 from openkonnect.tools import findings as F
 from openkonnect.tools.get_selection import get_selection
 from openkonnect.tools.run_kct_handoff import find_kct

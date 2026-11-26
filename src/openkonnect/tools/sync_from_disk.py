@@ -11,16 +11,16 @@ from typing import Any
 
 from .. import errors as E
 from ..backend import BoardRef
-from ..errors import ErrorCode, OpenKonnectError
-from ..session import (
+from ..board_state import (
     DirtyState,
-    Session,
     bind_to_file,
     board_dirty_state,
     file_state,
     read_board_text,
     text_sha256,
 )
+from ..errors import ErrorCode, OpenKonnectError
+from ..session import Session
 from .common import inferred_schematic, open_boards_or_fail, parse_documents
 
 DESCRIPTION = (

@@ -49,7 +49,8 @@ from typing import Any
 
 from .. import errors as E
 from ..backend import NM_PER_MM
-from ..session import Session, file_state, read_board_text, text_sha256
+from ..board_state import file_state, read_board_text, text_sha256
+from ..session import Session
 from . import findings as F
 from .common import pad_name, require_board
 from .get_selection import describe_selection
