@@ -2,13 +2,24 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from google.protobuf.any_pb2 import Any as AnyProto
+from kipy.board_types import FootprintInstance, Pad
 from kipy.proto.board import board_types_pb2
 from kipy.proto.common.commands import editor_commands_pb2 as ed
 from kipy.proto.common.types import base_types_pb2
 
-from openkonnect.backend import SELECTION_KINDS, _boxes, _describe, _kind_of, _read_selection
-from openkonnect.tools.get_selection import get_selection
+from openkonnect.backend import (
+    SELECTION_KINDS,
+    BoardRef,
+    KipyBackend,
+    _boxes,
+    _describe,
+    _kind_of,
+    _read_selection,
+)
+from openkonnect.tools.get_selection import describe_selection, get_selection
 
 from .conftest import EditorFake, FakeBackend, make_session
 
@@ -230,3 +241,182 @@ def test_describe_footprint_carries_the_lay02_details():
     assert d["attributes"]["mounting"] == "smd"
     assert d["attributes"]["exclude_from_bom"] is False
     assert d["fields"] == {}
+
+
+class Board:
+    """The kipy ``Board`` calls the selection and index paths make, over real messages."""
+
+    def __init__(self, footprints=(), pads=()) -> None:
+        self.footprints = list(footprints)
+        self.pads = list(pads)
+
+    def get_footprints(self):
+        return list(self.footprints)
+
+    def get_pads(self):
+        return list(self.pads)
+
+    def get_tracks(self):
+        return []
+
+    def get_vias(self):
+        return []
+
+    def get_zones(self):
+        return []
+
+    def get_nets(self):
+        return []
+
+    def get_items(self, types):
+        return []
+
+
+def _backend(board, replies):
+    """A ``KipyBackend`` over ``board`` whose client answers from ``replies``; no socket."""
+    backend = KipyBackend.__new__(KipyBackend)
+    backend._kicad = SimpleNamespace(_client=ProtoClient(replies))
+    backend._board = lambda ref: board
+    return backend
+
+
+def _footprint(ref, fp_id, pads):
+    """A ``FootprintInstance`` at (110, 60) mm whose definition pads are (id, number, net)."""
+    msg = board_types_pb2.FootprintInstance()
+    msg.id.value = fp_id
+    msg.reference_field.text.text.text = ref
+    msg.layer = board_types_pb2.BoardLayer.BL_F_Cu
+    msg.position.x_nm, msg.position.y_nm = 110_000_000, 60_000_000
+    for pad_id, number, net in pads:
+        pad = board_types_pb2.Pad()
+        pad.id.value = pad_id
+        pad.number = number
+        pad.net.name = net
+        msg.definition.items.add().Pack(pad)
+    return FootprintInstance(msg)
+
+
+def _pad(pad_id, number, net, x_nm, y_nm):
+    """A live board pad, as ``Board.get_pads`` returns it."""
+    msg = board_types_pb2.Pad()
+    msg.id.value = pad_id
+    msg.number = number
+    msg.net.name = net
+    msg.position.x_nm, msg.position.y_nm = x_nm, y_nm
+    return Pad(msg)
+
+
+def _boxes_reply(boxes):
+    """A GetBoundingBox reply pairing each item KIID with its (x, y, width, height) in nm."""
+    resp = ed.GetBoundingBoxResponse()
+    for kiid, (x, y, w, h) in boxes.items():
+        resp.items.add(value=kiid)
+        box = resp.boxes.add()
+        box.position.x_nm, box.position.y_nm = x, y
+        box.size.x_nm, box.size.y_nm = w, h
+    return resp
+
+
+def _board_ref():
+    return BoardRef(None, "board.kicad_pcb", handle=base_types_pb2.DocumentSpecifier())
+
+
+def test_selected_footprint_reports_the_pad_nets_kipy_sent_with_it():
+    r1 = _footprint("R1", "fp-r1", (("pad-r1-1", "1", "DEF-1"), ("pad-r1-2", "2", "DEF-2")))
+    live = _pad("pad-r1-1", "1", "LIVE-1", 109_000_000, 60_000_000)
+    replies = {
+        ed.SelectionResponse: ed.SelectionResponse(items=[_packed(r1.proto), _packed(live.proto)]),
+        ed.GetBoundingBoxResponse: _boxes_reply(
+            {
+                "fp-r1": (108_500_000, 59_400_000, 3_000_000, 1_200_000),
+                "pad-r1-1": (108_500_000, 59_400_000, 1_000_000, 1_200_000),
+            }
+        ),
+    }
+    backend = _backend(Board([r1], [live]), replies)
+
+    data = backend.selection(_board_ref())
+
+    [fp] = [i for i in data["items"] if i["kind"] == "footprint"]
+    assert fp["pads"] == [
+        {"id": "pad-r1-1", "number": "1", "net": "DEF-1"},
+        {"id": "pad-r1-2", "number": "2", "net": "DEF-2"},
+    ]
+    r = describe_selection(data)
+    assert r["footprints"] == ["R1"]
+    assert r["pads"] == ["R1.1"]
+    assert r["nets"] == ["LIVE-1"]
+    assert r["nets_of_footprints"] == ["DEF-1", "DEF-2"]
+
+
+def test_index_pads_are_the_live_pads_and_no_definition_net_is_read(monkeypatch):
+    from openkonnect import backend as backend_mod
+
+    r1 = _footprint("R1", "fp-r1", (("pad-r1-1", "1", "DEF-1"), ("pad-r1-2", "2", "DEF-2")))
+    r2 = _footprint("R2", "fp-r2", (("pad-r2-1", "1", "DEF-3"),))
+    live = [
+        _pad("pad-r1-1", "1", "LIVE-1", 109_000_000, 60_000_000),
+        _pad("pad-r1-2", "2", "LIVE-2", 111_000_000, 60_000_000),
+    ]
+    reply = _boxes_reply(
+        {
+            "fp-r1": (108_500_000, 59_400_000, 3_000_000, 1_200_000),
+            "pad-r1-1": (108_500_000, 59_400_000, 1_000_000, 1_200_000),
+            "pad-r1-2": (110_500_000, 59_400_000, 1_000_000, 1_200_000),
+        }
+    )
+    backend = _backend(Board([r1, r2], live), {ed.GetBoundingBoxResponse: reply})
+    nets_read = []
+    real_net_name = backend_mod._net_name
+
+    def spy(net):
+        nets_read.append(real_net_name(net))
+        return nets_read[-1]
+
+    monkeypatch.setattr(backend_mod, "_net_name", spy)
+
+    index = backend.board_index(_board_ref())
+
+    fps = {fp["ref"]: fp for fp in index["footprints"]}
+    assert list(fps) == ["R1", "R2"]
+    assert fps["R1"]["bbox_nm"] == {
+        "x0_nm": 108_500_000,
+        "y0_nm": 59_400_000,
+        "x1_nm": 111_500_000,
+        "y1_nm": 60_600_000,
+    }
+    assert fps["R1"]["pads"] == [
+        {
+            "id": "pad-r1-1",
+            "kind": "pad",
+            "net": "LIVE-1",
+            "layer": None,
+            "ref": "R1",
+            "pad": "1",
+            "position_nm": {"x": 109_000_000, "y": 60_000_000},
+            "bbox_nm": {
+                "x0_nm": 108_500_000,
+                "y0_nm": 59_400_000,
+                "x1_nm": 109_500_000,
+                "y1_nm": 60_600_000,
+            },
+        },
+        {
+            "id": "pad-r1-2",
+            "kind": "pad",
+            "net": "LIVE-2",
+            "layer": None,
+            "ref": "R1",
+            "pad": "2",
+            "position_nm": {"x": 111_000_000, "y": 60_000_000},
+            "bbox_nm": {
+                "x0_nm": 110_500_000,
+                "y0_nm": 59_400_000,
+                "x1_nm": 111_500_000,
+                "y1_nm": 60_600_000,
+            },
+        },
+    ]
+    assert fps["R2"]["pads"] == []
+    assert fps["R2"]["bbox_nm"] is None
+    assert nets_read == ["LIVE-1", "LIVE-2"]
