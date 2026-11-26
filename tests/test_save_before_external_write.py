@@ -9,6 +9,7 @@ file, ``revert_board`` reads the file back into it.
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,23 @@ EDITED_TEXT = '(kicad_pcb (version 20241229) (generator "pcbnew") (edited yes))\
 
 def sha(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
+
+
+def write_saved_text(path: str, text: str) -> None:
+    """Write the text a successful save leaves on disk, with an mtime of its own.
+
+    The save check needs the digest or the mtime to change, and a rewrite that
+    lands in the same filesystem clock tick as the write before it keeps the
+    file's mtime (ZFS).
+    """
+    path = Path(path)
+    try:
+        old = path.stat()
+    except FileNotFoundError:
+        old = None
+    path.write_text(text)
+    if old is not None:
+        os.utime(path, ns=(old.st_atime_ns, old.st_mtime_ns + 2_000_000_000))
 
 
 class SyncFake(FakeBackend):
@@ -65,7 +83,7 @@ class SyncFake(FakeBackend):
         if self.save_error is not None:
             raise self.save_error
         if self.save_writes:
-            Path(ref.path).write_text(self.editor)
+            write_saved_text(ref.path, self.editor)
 
     def revert_board(self, ref) -> None:
         self.calls.append("revert_board")
@@ -293,7 +311,7 @@ class KicadSaveFake(SyncFake):
 
     def save_board(self, ref) -> None:
         self.calls.append("save_board")
-        Path(ref.path).write_text(kicad_save_form(self.editor))
+        write_saved_text(ref.path, kicad_save_form(self.editor))
 
 
 def test_kicad_save_form_is_canonically_equal_but_not_byte_equal():
@@ -356,6 +374,50 @@ def test_unlisted_kicad_version_keeps_byte_equality(tmp_path, version):
     (doc,) = r["documents"]
     assert doc["editor_matches_file"] is False
     assert doc["match_basis"] is None
+
+
+def writes_keep_the_old_mtime(monkeypatch) -> None:
+    """Patch ``Path.write_text``: a rewrite lands in the same filesystem clock
+    tick as the write before it, so the file keeps its mtime (as on ZFS)."""
+    real_write_text = Path.write_text
+
+    def write_text(self, data, *args, **kwargs):
+        try:
+            old = self.stat()
+        except FileNotFoundError:
+            return real_write_text(self, data, *args, **kwargs)
+        written = real_write_text(self, data, *args, **kwargs)
+        os.utime(self, ns=(old.st_atime_ns, old.st_mtime_ns))
+        return written
+
+    monkeypatch.setattr(Path, "write_text", write_text)
+
+
+@pytest.mark.parametrize(
+    ("fake_class", "editor", "on_disk"),
+    [
+        pytest.param(SyncFake, FILE_TEXT, FILE_TEXT, id="SyncFake"),
+        pytest.param(
+            KicadSaveFake, KICAD_EDITOR, kicad_save_form(KICAD_EDITOR), id="KicadSaveFake"
+        ),
+    ],
+)
+def test_save_of_unchanged_bytes_moves_the_mtime(
+    tmp_path, monkeypatch, fake_class, editor, on_disk
+):
+    writes_keep_the_old_mtime(monkeypatch)
+    ref = board_on_disk(tmp_path, on_disk)
+    fake = fake_class(ref, editor)
+    mtime_before = Path(ref.path).stat().st_mtime_ns
+    fake.save_board(ref)
+    assert Path(ref.path).read_text() == on_disk
+    assert Path(ref.path).stat().st_mtime_ns != mtime_before
+
+
+def test_save_creates_a_missing_board_file(tmp_path):
+    ref = board_ref(str(tmp_path))
+    SyncFake(ref, EDITED_TEXT).save_board(ref)
+    assert Path(ref.path).read_text() == EDITED_TEXT
 
 
 def test_edited_editor_is_not_clean_on_the_measured_version(tmp_path):
