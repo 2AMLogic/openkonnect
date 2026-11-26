@@ -73,21 +73,16 @@ def build_server(session: Session | None = None) -> FastMCP:
         )
         return _to_result(payload)
 
-    @mcp.tool(
-        name="session_status",
-        description=session_status_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    def tool(
+        description: str, annotations: ToolAnnotations
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        return mcp.tool(description=description, annotations=annotations, structured_output=False)
+
+    @tool(session_status_mod.DESCRIPTION, _READ_ONLY)
     async def session_status() -> CallToolResult:
         return await run(session_status_mod.session_status)
 
-    @mcp.tool(
-        name="list_instances",
-        description=list_instances_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(list_instances_mod.DESCRIPTION, _READ_ONLY)
     async def list_instances(socket: str | None = None) -> CallToolResult:
         # Not wrapped in run_tool: each socket is bounded by timeout_s on its own.
         payload = await anyio.to_thread.run_sync(
@@ -96,21 +91,11 @@ def build_server(session: Session | None = None) -> FastMCP:
         )
         return _to_result(payload)
 
-    @mcp.tool(
-        name="board_summary",
-        description=board_summary_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(board_summary_mod.DESCRIPTION, _READ_ONLY)
     async def board_summary() -> CallToolResult:
         return await run(board_summary_mod.board_summary)
 
-    @mcp.tool(
-        name="list_footprints",
-        description=list_footprints_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(list_footprints_mod.DESCRIPTION, _READ_ONLY)
     async def list_footprints(
         refs: list[str] | None = None,
         side: str | None = None,
@@ -121,33 +106,18 @@ def build_server(session: Session | None = None) -> FastMCP:
             lambda s: list_footprints_mod.list_footprints(s, refs, side, box, selected_only)
         )
 
-    @mcp.tool(
-        name="footprint_pads",
-        description=footprint_pads_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(footprint_pads_mod.DESCRIPTION, _READ_ONLY)
     async def footprint_pads(refs: list[str]) -> CallToolResult:
         return await run(lambda s: footprint_pads_mod.footprint_pads(s, refs))
 
-    @mcp.tool(
-        name="get_selection",
-        description=get_selection_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(get_selection_mod.DESCRIPTION, _READ_ONLY)
     async def get_selection(
         kinds: list[str] | None = None,
         include_geometry: bool = False,
     ) -> CallToolResult:
         return await run(lambda s: get_selection_mod.get_selection(s, kinds, include_geometry))
 
-    @mcp.tool(
-        name="list_nets",
-        description=list_nets_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(list_nets_mod.DESCRIPTION, _READ_ONLY)
     async def list_nets(
         pattern: str | None = None,
         net_class: str | None = None,
@@ -155,21 +125,11 @@ def build_server(session: Session | None = None) -> FastMCP:
     ) -> CallToolResult:
         return await run(lambda s: list_nets_mod.list_nets(s, pattern, net_class, include_items))
 
-    @mcp.tool(
-        name="board_outline",
-        description=board_outline_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(board_outline_mod.DESCRIPTION, _READ_ONLY)
     async def board_outline() -> CallToolResult:
         return await run(board_outline_mod.board_outline)
 
-    @mcp.tool(
-        name="list_copper",
-        description=list_copper_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(list_copper_mod.DESCRIPTION, _READ_ONLY)
     async def list_copper(
         net: str | None = None,
         layer: str | None = None,
@@ -178,33 +138,18 @@ def build_server(session: Session | None = None) -> FastMCP:
     ) -> CallToolResult:
         return await run(lambda s: list_copper_mod.list_copper(s, net, layer, box, locked_only))
 
-    @mcp.tool(
-        name="list_zones",
-        description=list_zones_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(list_zones_mod.DESCRIPTION, _READ_ONLY)
     async def list_zones(
         net: str | None = None,
         layer: str | None = None,
     ) -> CallToolResult:
         return await run(lambda s: list_zones_mod.list_zones(s, net, layer))
 
-    @mcp.tool(
-        name="layers_and_stackup",
-        description=layers_and_stackup_mod.DESCRIPTION,
-        annotations=_READ_ONLY,
-        structured_output=False,
-    )
+    @tool(layers_and_stackup_mod.DESCRIPTION, _READ_ONLY)
     async def layers_and_stackup() -> CallToolResult:
         return await run(lambda s: layers_and_stackup_mod.layers_and_stackup(s))
 
-    @mcp.tool(
-        name="show_findings",
-        description=show_findings_mod.DESCRIPTION,
-        annotations=_SELECTS,
-        structured_output=False,
-    )
+    @tool(show_findings_mod.DESCRIPTION, _SELECTS)
     async def show_findings(
         findings: list[Any] | dict[str, Any] | str,
         mode: str = "select",
@@ -213,12 +158,7 @@ def build_server(session: Session | None = None) -> FastMCP:
     ) -> CallToolResult:
         return await run(lambda s: show_findings_mod.show_findings(s, findings, mode, focus, zoom))
 
-    @mcp.tool(
-        name="save_before_external_write",
-        description=save_mod.DESCRIPTION,
-        annotations=_SAVES,
-        structured_output=False,
-    )
+    @tool(save_mod.DESCRIPTION, _SAVES)
     async def save_before_external_write(
         documents: str | list[str] | None = None,
         allow_save: bool = False,
@@ -230,12 +170,7 @@ def build_server(session: Session | None = None) -> FastMCP:
             )
         )
 
-    @mcp.tool(
-        name="sync_from_disk",
-        description=sync_mod.DESCRIPTION,
-        annotations=_RELOADS,
-        structured_output=False,
-    )
+    @tool(sync_mod.DESCRIPTION, _RELOADS)
     async def sync_from_disk(
         documents: str | list[str] | None = None,
         discard_unsaved: bool = False,
@@ -248,12 +183,7 @@ def build_server(session: Session | None = None) -> FastMCP:
             )
         )
 
-    @mcp.tool(
-        name="run_kct_handoff",
-        description=handoff_mod.DESCRIPTION,
-        annotations=_RELOADS,
-        structured_output=False,
-    )
+    @tool(handoff_mod.DESCRIPTION, _RELOADS)
     async def run_kct_handoff(
         command: list[str],
         documents: str | list[str] | None = None,
