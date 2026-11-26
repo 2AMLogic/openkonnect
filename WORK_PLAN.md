@@ -51,6 +51,7 @@ _None._
 
 Issues carrying `loom:curated`.
 
+- **#113**: Re-derive the kicad-tools 0.24 black-box `kct route` claims against the locked 0.29 *(curated)*
 - **#142**: Treat empty list_footprints refs as an omitted filter *(curated)*
 
 ## Proposed (Architect / Hermit)
@@ -72,7 +73,7 @@ _None._
 | In Progress (`loom:building`) | 1 |
 | PRs awaiting review | 1 |
 | Approved PRs awaiting merge | 0 |
-| Curated | 1 |
+| Curated | 2 |
 | Architect / Hermit proposals | 0 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
