@@ -37,12 +37,15 @@ Issues currently being built (`loom:building`).
 - **#155**: Make mock save tests reliable when consecutive writes share a timestamp
 - **#157**: create-pr.sh exits 126 when the private defaults config exceeds the jq argument limit
 - **#158**: Avoid building the footprint pad list discarded by the board index
+- **#163**: Skip unused focus bookkeeping in show_findings
+- **#165**: Move kct discovery, runner and command validation out of run_kct_handoff.py
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
 - **#144**: fix: treat empty list_footprints refs as an omitted filter
+- **#166**: refactor: move kct runner and command guards to kct module
 
 ## Approved (Awaiting Merge)
 
@@ -51,6 +54,7 @@ PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 - **#156**: test: set a new mtime on byte-identical fake board saves
 - **#160**: chore(loom): resync installed Loom to v0.20.41
 - **#161**: perf: build the definition-pad list only in the selection path
+- **#164**: perf(show_findings): skip the fingerprint and list scan for focus all
 
 ## Proposed
 
@@ -77,9 +81,9 @@ _None._
 | Very important | 0 |
 | Important | 0 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 4 |
-| PRs awaiting review | 1 |
-| Approved PRs awaiting merge | 3 |
+| In Progress (`loom:building`) | 6 |
+| PRs awaiting review | 2 |
+| Approved PRs awaiting merge | 4 |
 | Curated | 4 |
 | Architect / Hermit proposals | 0 |
 | Active epics | 0 |
