@@ -384,20 +384,24 @@ class Session:
 
     # -- classification ----------------------------------------------------------
 
-    def probe(self) -> Probe:
+    def probe(self, *, include_config: bool = True) -> Probe:
         """Classify the connection. Not-running / disabled / unreachable are data.
 
+        With include_config=False, read the saved preference only to classify a failure.
         Raises only ``kicad_busy``, ``timeout`` and ``instance_changed``.
         """
         sockets = self._socket_finder(self.config.socket)
-        running = self._process_probe()
-        running_field: bool | str = "unknown" if running is None else running
-        cfg = self._config_probe()
+
+        def host_hints() -> tuple[bool | str, bool | None]:
+            running = self._process_probe()
+            need_config = include_config or (not sockets and running is True)
+            cfg = self._config_probe() if need_config else None
+            return "unknown" if running is None else running, cfg
 
         def down(reason: OpenKonnectError, socket: str | None = None) -> Probe:
             self.reset()
             return Probe(
-                kicad_running=running_field,
+                kicad_running=running,
                 ipc_reachable=False,
                 state=reason.code.value,
                 reason=reason,
@@ -407,6 +411,7 @@ class Session:
             )
 
         if sockets is not None and not sockets:
+            running, cfg = host_hints()
             if running is False:
                 return down(E.kicad_not_running(process_found=False, socket_found=False))
             if running is True:
@@ -443,11 +448,12 @@ class Session:
         except OpenKonnectError as err:
             if err.code is not ErrorCode.IPC_UNREACHABLE:
                 raise
+            running, cfg = host_hints()
             if running is False:
                 return down(E.kicad_not_running(process_found=False, stale_socket=socket), socket)
             if sockets is None and running is True and cfg is False:
                 return down(E.ipc_disabled(process_found=True, api_enabled_in_config=False))
-            err.details.setdefault("process_found", running_field)
+            err.details.setdefault("process_found", running)
             return down(err, socket)
 
         self._check_identity(backend)
@@ -457,12 +463,12 @@ class Session:
             state="reachable",
             socket=socket,
             sockets_found=len(sockets) if sockets is not None else 1,
-            api_enabled_in_config=cfg,
+            api_enabled_in_config=self._config_probe() if include_config else None,
         )
 
     def require_reachable(self) -> Probe:
         """SES-07: fail fast with a connection code unless KiCad answers."""
-        p = self.probe()
+        p = self.probe(include_config=False)
         if not p.ipc_reachable:
             assert p.reason is not None
             raise p.reason
