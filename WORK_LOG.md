@@ -3,6 +3,11 @@
 Chronological record of merged pull requests and closed issues, newest first.
 Maintained by the Loom Guide role; entries are appended automatically.
 
+### 2026-11-27
+
+- **PR #173**: perf: defer KiCad process and configuration probes
+- **Issue #172** (closed): Skip unused process and config probes in Session.probe when KiCad answers
+
 ### 2026-11-26
 
 - **PR #170**: test: enumerate only the hash args sync_from_disk takes
