@@ -8,6 +8,7 @@ dict is copied into this file except the deliberately malformed ones.
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 import subprocess
@@ -51,6 +52,13 @@ def selected(fake):
 
 
 def kct_json(*argv: str) -> dict:
+    # kct is read-only on the fixture, so run each distinct command once per
+    # session; parse afresh so tests that mutate the payload stay isolated.
+    return json.loads(_kct_stdout(*argv))
+
+
+@functools.cache
+def _kct_stdout(*argv: str) -> str:
     kct = find_kct()
     if kct is None:
         pytest.skip("kct (kicad-tools) not found")
@@ -62,12 +70,13 @@ def kct_json(*argv: str) -> dict:
             f"stderr tail: {err_tail!r}"
         )
     try:
-        return json.loads(p.stdout)
+        json.loads(p.stdout)
     except ValueError as e:
         raise AssertionError(
             f"`kct {' '.join(argv)}` stdout is not JSON (rc={p.returncode}): {e}; "
             f"stderr tail: {err_tail!r}"
         ) from None
+    return p.stdout
 
 
 def courtyard(ref: str, x: float, y: float) -> Finding:
