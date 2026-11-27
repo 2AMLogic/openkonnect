@@ -5,6 +5,12 @@ Maintained by the Loom Guide role; entries are appended automatically.
 
 ### 2026-11-26
 
+- **PR #170**: test: enumerate only the hash args sync_from_disk takes
+- **PR #166**: refactor: move kct runner and command guards to kct module
+- **PR #161**: perf: build the definition-pad list only in the selection path
+- **Issue #168** (closed): Skip 400 redundant calls in the sync_from_disk hash regression test
+- **Issue #165** (closed): Move kct discovery, runner and command validation out of run_kct_handoff.py
+- **Issue #158** (closed): Avoid building the footprint pad list discarded by the board index
 - **PR #154**: refactor: move dirty-state and fingerprint helpers to board_state
 - **Issue #153** (closed): Move board dirty-state and fingerprint helpers out of session.py
 
