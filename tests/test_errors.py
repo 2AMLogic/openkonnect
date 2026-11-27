@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from unittest.mock import Mock
 
 import pytest
 
@@ -52,6 +53,49 @@ def test_connection_codes_cover_ses07():
         "kicad_busy",
         "no_document",
     }
+
+
+@pytest.mark.parametrize(
+    ("ping", "code"),
+    [
+        (None, None),
+        (busy(), "kicad_busy"),
+        (timed_out(), "timeout"),
+        (token_mismatch(), "instance_changed"),
+    ],
+)
+def test_board_tool_skips_host_probes_when_kicad_answers(ping, code):
+    s = make_session(FakeBackend(ping=ping, open_boards=[[board_ref()]]))
+    s._process_probe = Mock(return_value=True)
+    s._config_probe = Mock(return_value=True)
+    result = run(s)
+    if code is None:
+        assert result["ok"] is True
+    else:
+        assert_error(result, code)
+    s._process_probe.assert_not_called()
+    s._config_probe.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("sockets", "running", "code", "config_calls"),
+    [
+        ([], False, "kicad_not_running", 0),
+        ([], None, "ipc_unreachable", 0),
+        ([], True, "ipc_disabled", 1),
+        ([SOCKET], True, "ipc_unreachable", 0),
+        ([SOCKET], False, "kicad_not_running", 0),
+        (None, True, "ipc_disabled", 1),
+        (None, False, "kicad_not_running", 0),
+    ],
+)
+def test_unreachable_board_tool_reads_only_needed_hints(sockets, running, code, config_calls):
+    s = make_session(FakeBackend(ping=refused()), sockets=sockets)
+    s._process_probe = Mock(return_value=running)
+    s._config_probe = Mock(return_value=False)
+    assert_error(run(s), code)
+    s._process_probe.assert_called_once_with()
+    assert s._config_probe.call_count == config_calls
 
 
 def test_kicad_not_running():

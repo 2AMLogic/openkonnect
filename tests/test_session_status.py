@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import time
+from unittest.mock import Mock
 
 import pytest
 from kipy.errors import ApiError
@@ -13,11 +14,32 @@ from kipy.proto.common.types import DocumentSpecifier, DocumentType
 from openkonnect.backend import BoardRef, KipyBackend
 from openkonnect.tools.session_status import session_status
 
-from .conftest import FakeBackend, board_ref, busy, make_session
+from .conftest import SOCKET, FakeBackend, board_ref, busy, make_session, refused
 
 
 def status(session):
     return session.run_tool(session_status)
+
+
+@pytest.mark.parametrize(
+    ("sockets", "ping", "state", "process_calls"),
+    [
+        ([SOCKET], None, "reachable", 0),
+        ([], None, "kicad_not_running", 1),
+        ([SOCKET], refused(), "kicad_not_running", 1),
+        (None, refused(), "kicad_not_running", 1),
+    ],
+)
+def test_status_reports_saved_preference(sockets, ping, state, process_calls):
+    s = make_session(FakeBackend(ping=ping), sockets=sockets)
+    s._process_probe = Mock(return_value=False)
+    s._config_probe = Mock(return_value=False)
+    result = status(s)
+    assert result["state"] == state
+    assert result["api_enabled_in_config"] is False
+    assert result["kicad_running"] is (state == "reachable")
+    assert s._process_probe.call_count == process_calls
+    s._config_probe.assert_called_once_with()
 
 
 def test_nothing_running_is_data_not_error():
