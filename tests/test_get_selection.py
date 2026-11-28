@@ -209,34 +209,6 @@ def test_kipy_backend_maps_every_selection_kind():
     assert set(_kind_types()) == set(SELECTION_KINDS)
 
 
-def test_describe_footprint_carries_the_lay02_details():
-    fp = board_types_pb2.FootprintInstance()
-    fp.id.value = "fp-a"
-    fp.reference_field.text.text.text = "U7"
-    fp.value_field.text.text.text = "STM32"
-    fp.orientation.value_degrees = 90.0
-    fp.locked = base_types_pb2.LockedState.LS_LOCKED
-    fp.layer = board_types_pb2.BoardLayer.BL_B_Cu
-    fp.definition.id.library_nickname = "Package_QFP"
-    fp.definition.id.entry_name = "LQFP-48"
-    fp.attributes.do_not_populate = True
-    fp.attributes.mounting_style = board_types_pb2.FootprintMountingStyle.FMS_SMD
-    extra = fp.definition.items.add()
-    extra.Pack(board_types_pb2.Field(name="MPN", text=board_types_pb2.BoardText()))
-    from kipy.board_types import FootprintInstance
-
-    d = _describe(FootprintInstance(fp), "footprint", {})
-    assert d["value"] == "STM32"
-    assert d["library_id"] == "Package_QFP:LQFP-48"
-    assert d["orientation_deg"] == 90.0
-    assert d["locked"] is True
-    assert d["layer"] == "B.Cu"
-    assert d["attributes"]["do_not_populate"] is True
-    assert d["attributes"]["mounting"] == "smd"
-    assert d["attributes"]["exclude_from_bom"] is False
-    assert d["fields"] == {}
-
-
 class Board:
     """The kipy ``Board`` calls the selection and index paths make, over real messages."""
 
@@ -343,6 +315,65 @@ def test_selected_footprint_reports_the_pad_nets_kipy_sent_with_it():
     assert r["nets_of_footprints"] == ["DEF-1", "DEF-2"]
 
 
+def test_selection_does_not_decode_the_lay02_details(monkeypatch):
+    from openkonnect import backend_readers as readers_mod
+
+    r1 = _footprint("R1", "fp-r1", (("pad-r1-1", "1", "DEF-1"), ("pad-r1-2", "2", "DEF-2")))
+    live = _pad("pad-r1-1", "1", "LIVE-1", 109_000_000, 60_000_000)
+    replies = {
+        ed.SelectionResponse: ed.SelectionResponse(items=[_packed(r1.proto), _packed(live.proto)]),
+        ed.GetBoundingBoxResponse: _boxes_reply(
+            {
+                "fp-r1": (108_500_000, 59_400_000, 3_000_000, 1_200_000),
+                "pad-r1-1": (108_500_000, 59_400_000, 1_000_000, 1_200_000),
+            }
+        ),
+    }
+    backend = _backend(Board([r1], [live]), replies)
+
+    def no_details(fp):
+        raise AssertionError("the selection path decoded the LAY-02 details")
+
+    monkeypatch.setattr(readers_mod, "_footprint_details", no_details)
+
+    data = backend.selection(_board_ref())
+
+    r = describe_selection(data)
+    assert r["footprints"] == ["R1"]
+    assert r["pads"] == ["R1.1"]
+    assert r["nets"] == ["LIVE-1"]
+    assert r["nets_of_footprints"] == ["DEF-1", "DEF-2"]
+    assert "geometry" not in r
+    g = describe_selection(data, include_geometry=True)
+    assert g["geometry"]["R1"] == {
+        "kind": "footprint",
+        "position_mm": {"frame": "file", "x_mm": 110.0, "y_mm": 60.0},
+        "bbox_mm": {
+            "frame": "file",
+            "x0_mm": 108.5,
+            "y0_mm": 59.4,
+            "x1_mm": 111.5,
+            "y1_mm": 60.6,
+            "width_mm": 3.0,
+            "height_mm": 1.2,
+        },
+        "layer": "F.Cu",
+    }
+    assert g["geometry"]["R1.1"] == {
+        "kind": "pad",
+        "position_mm": {"frame": "file", "x_mm": 109.0, "y_mm": 60.0},
+        "bbox_mm": {
+            "frame": "file",
+            "x0_mm": 108.5,
+            "y0_mm": 59.4,
+            "x1_mm": 109.5,
+            "y1_mm": 60.6,
+            "width_mm": 1.0,
+            "height_mm": 1.2,
+        },
+    }
+
+
 def test_index_pads_are_the_live_pads_and_no_definition_net_is_read(monkeypatch):
     from openkonnect import backend_readers as readers_mod
 
@@ -414,3 +445,36 @@ def test_index_pads_are_the_live_pads_and_no_definition_net_is_read(monkeypatch)
     assert fps["R2"]["pads"] == []
     assert fps["R2"]["bbox_nm"] is None
     assert nets_read == ["LIVE-1", "LIVE-2"]
+
+
+def test_index_footprint_carries_the_lay02_details():
+    fp = board_types_pb2.FootprintInstance()
+    fp.id.value = "fp-a"
+    fp.reference_field.text.text.text = "U7"
+    fp.value_field.text.text.text = "STM32"
+    fp.orientation.value_degrees = 90.0
+    fp.locked = base_types_pb2.LockedState.LS_LOCKED
+    fp.layer = board_types_pb2.BoardLayer.BL_B_Cu
+    fp.definition.id.library_nickname = "Package_QFP"
+    fp.definition.id.entry_name = "LQFP-48"
+    fp.attributes.do_not_populate = True
+    fp.attributes.mounting_style = board_types_pb2.FootprintMountingStyle.FMS_SMD
+    extra = fp.definition.items.add()
+    extra.Pack(board_types_pb2.Field(name="MPN", text=board_types_pb2.BoardText()))
+    backend = _backend(
+        Board([FootprintInstance(fp)]), {ed.GetBoundingBoxResponse: _boxes_reply({})}
+    )
+
+    [d] = backend.board_index(_board_ref())["footprints"]
+
+    assert d["id"] == "fp-a"
+    assert d["ref"] == "U7"
+    assert d["value"] == "STM32"
+    assert d["library_id"] == "Package_QFP:LQFP-48"
+    assert d["orientation_deg"] == 90.0
+    assert d["locked"] is True
+    assert d["layer"] == "B.Cu"
+    assert d["attributes"]["do_not_populate"] is True
+    assert d["attributes"]["mounting"] == "smd"
+    assert d["attributes"]["exclude_from_bom"] is False
+    assert d["fields"] == {}

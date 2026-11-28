@@ -182,7 +182,6 @@ def _describe(item: Any, kind: str, owners: dict[str, tuple[str, str]]) -> dict[
         d["ref"] = _footprint_ref(item)
         d["layer"] = _layer_name(item.layer)
         d["position_nm"] = _vec(item.position)
-        d.update(_footprint_details(item))
     elif kind == "pad":
         owner = owners.get(d["id"] or "")
         if owner is not None:
@@ -292,6 +291,7 @@ def _board_index(self: KipyBackend, ref: BoardRef) -> dict[str, Any]:
             by_fp.setdefault(d["ref"], []).append(d)
     for fp in footprints:
         d = _describe(fp, "footprint", owners)
+        d.update(_footprint_details(fp))
         d["bbox_nm"] = boxes.get(d["id"] or "")
         d["pads"] = by_fp.get(d["ref"], [])
         fps.append(d)
