@@ -1,7 +1,7 @@
 """LAY-05 ``list_copper``: filters and shaping against a fake PCB editor, and the decode.
 
 The decode tests at the bottom build real ``kipy`` ``Track`` / ``ArcTrack`` / ``Via``
-objects on a minimal board fake and call ``backend._copper`` directly, so the field
+objects on a minimal board fake and call ``backend_readers._copper`` directly, so the field
 names, units and geometry the real KiCad path depends on are exercised with no KiCad
 running (the pattern of ``tests/test_edge_outline.py``). They are not a substitute for
 a live run: see ``tests/live/test_live_list_copper.py``.
@@ -18,7 +18,7 @@ from kipy.board_types import ArcTrack, BoardRectangle, Track, Via
 from kipy.geometry import Vector2
 from kipy.proto.board.board_types_pb2 import BoardLayer, ViaType
 
-from openkonnect.backend import _copper
+from openkonnect.backend_readers import _copper
 from openkonnect.tools.list_copper import list_copper
 
 from .conftest import MM, EditorFake, FakeBackend, _track, board_ref, make_session

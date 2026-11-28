@@ -231,7 +231,8 @@ def test_kipy_import_pattern_ignores_kipy_prefixed_module_names():
 
 
 def test_stray_rule_accepts_backend_siblings_and_session():
-    assert _stray_kipy_importers({"backend.py", "backend_outline.py", "session.py"}) == []
+    importers = {"backend.py", "backend_outline.py", "backend_readers.py", "session.py"}
+    assert _stray_kipy_importers(importers) == []
 
 
 def test_stray_rule_reports_tools_and_top_level_strays():

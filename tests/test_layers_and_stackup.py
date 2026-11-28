@@ -16,7 +16,7 @@ from kipy.board import BoardStackup
 from kipy.proto.board import board_pb2
 from kipy.proto.board.board_types_pb2 import BoardLayer
 
-from openkonnect.backend import _layers_and_stackup
+from openkonnect.backend_readers import _layers_and_stackup
 from openkonnect.tools.layers_and_stackup import describe_layers_and_stackup, layers_and_stackup
 
 from .conftest import EditorFake, FakeBackend, board_ref, make_session

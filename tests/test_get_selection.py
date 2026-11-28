@@ -10,15 +10,8 @@ from kipy.proto.board import board_types_pb2
 from kipy.proto.common.commands import editor_commands_pb2 as ed
 from kipy.proto.common.types import base_types_pb2
 
-from openkonnect.backend import (
-    SELECTION_KINDS,
-    BoardRef,
-    KipyBackend,
-    _boxes,
-    _describe,
-    _kind_of,
-    _read_selection,
-)
+from openkonnect.backend import SELECTION_KINDS, BoardRef, KipyBackend
+from openkonnect.backend_readers import _boxes, _describe, _kind_of, _read_selection
 from openkonnect.tools.get_selection import describe_selection, get_selection
 
 from .conftest import EditorFake, FakeBackend, make_session
@@ -210,7 +203,8 @@ def test_boxes_keep_the_item_to_box_pairing():
 
 
 def test_kipy_backend_maps_every_selection_kind():
-    from openkonnect.backend import SELECTION_KINDS, _kind_types
+    from openkonnect.backend import SELECTION_KINDS
+    from openkonnect.backend_readers import _kind_types
 
     assert set(_kind_types()) == set(SELECTION_KINDS)
 
@@ -350,7 +344,7 @@ def test_selected_footprint_reports_the_pad_nets_kipy_sent_with_it():
 
 
 def test_index_pads_are_the_live_pads_and_no_definition_net_is_read(monkeypatch):
-    from openkonnect import backend as backend_mod
+    from openkonnect import backend_readers as readers_mod
 
     r1 = _footprint("R1", "fp-r1", (("pad-r1-1", "1", "DEF-1"), ("pad-r1-2", "2", "DEF-2")))
     r2 = _footprint("R2", "fp-r2", (("pad-r2-1", "1", "DEF-3"),))
@@ -367,13 +361,13 @@ def test_index_pads_are_the_live_pads_and_no_definition_net_is_read(monkeypatch)
     )
     backend = _backend(Board([r1, r2], live), {ed.GetBoundingBoxResponse: reply})
     nets_read = []
-    real_net_name = backend_mod._net_name
+    real_net_name = readers_mod._net_name
 
     def spy(net):
         nets_read.append(real_net_name(net))
         return nets_read[-1]
 
-    monkeypatch.setattr(backend_mod, "_net_name", spy)
+    monkeypatch.setattr(readers_mod, "_net_name", spy)
 
     index = backend.board_index(_board_ref())
 
