@@ -21,6 +21,7 @@ from kicad_tools.validate.violations import DRCViolation as LegacyViolation
 from openkonnect.board_state import file_state
 from openkonnect.kct import find_kct
 from openkonnect.tools import findings as F
+from openkonnect.tools import show_findings as show_findings_mod
 from openkonnect.tools.get_selection import get_selection
 from openkonnect.tools.show_findings import (
     _POINT_MESSAGES,
@@ -29,6 +30,7 @@ from openkonnect.tools.show_findings import (
     NO_POINT_BBOX_NOTE,
     NO_POINT_NAMES_BBOX_NOTE,
     NO_POINT_NOTE,
+    _focus_indices,
     show_findings,
 )
 
@@ -803,6 +805,89 @@ def test_focus_next_and_previous_walk_the_list():
     assert go("next") == (0, True, ["R1"])
     assert go("previous") == (1, True, ["R2"])
     assert go("previous") == (0, False, ["R1"])
+
+
+def test_focus_indices_are_ranges_so_membership_and_length_take_constant_time():
+    session = make_session(EditorFake())
+    n = 10_000
+    assert _focus_indices(session, "all", n, []) == (range(n), {"requested": "all"})
+    assert _focus_indices(session, 1, n, []) == (range(1, 2), {"requested": 1, "index": 1})
+    assert _focus_indices(session, "next", n, []) == (
+        range(2, 3),
+        {"requested": "next", "index": 2, "wrapped": False, "cursor": "continued"},
+    )
+    assert _focus_indices(session, "previous", n, []) == (
+        range(1, 2),
+        {"requested": "previous", "index": 1, "wrapped": False, "cursor": "continued"},
+    )
+
+
+def test_default_focus_covers_every_finding_in_order_and_skips_fingerprinting(monkeypatch):
+    fs = [
+        courtyard("R1", 110, 60),
+        Finding(rule_id="x", severity="error", message="", point=[101.0, 51.0]),
+        courtyard("R2", 120, 60),
+        courtyard("R3", 130, 65),
+    ]
+    calls = []
+
+    def spy(obj):
+        calls.append(obj)
+        return ""
+
+    monkeypatch.setattr(show_findings_mod, "_fingerprint", spy)
+    fake = EditorFake()
+    r = show(fake, fs)
+    assert r["ok"] is True, r
+    assert calls == []
+    assert r["focus"] == {"requested": "all"}
+    assert [f["index"] for f in r["findings"]] == [0, 1, 2, 3]
+    assert [f["resolved"]["footprints"] for f in r["findings"]] == [["R1"], [], ["R2"], ["R3"]]
+    assert r["selection"]["footprints"] == ["R1", "R2", "R3"]
+    assert r["totals"]["focused"] == 4
+    alone = [show(fake, fs, focus=j)["findings"][j]["action"] for j in range(4)]
+    assert [f["action"] for f in r["findings"]] == alone
+    assert len(calls) == 4
+
+
+@pytest.mark.parametrize(("step", "index", "ref"), [("next", 2, "R3"), ("previous", 0, "R1")])
+def test_an_all_call_between_an_index_and_a_step_call_keeps_the_cursor(step, index, ref):
+    fs = [courtyard("R1", 110, 60), courtyard("R2", 120, 60), courtyard("R3", 130, 65)]
+    session = make_session(EditorFake())
+
+    def go(focus):
+        r = session.run_tool(lambda s: show_findings(s, fs, focus=focus))
+        assert r["ok"], r
+        return r["focus"], r["selection"]["footprints"]
+
+    assert go(1) == ({"requested": 1, "index": 1}, ["R2"])
+    assert go("all") == ({"requested": "all"}, ["R1", "R2", "R3"])
+    assert go(step) == (
+        {"requested": step, "index": index, "wrapped": False, "cursor": "continued"},
+        [ref],
+    )
+
+
+def test_a_changed_finding_list_still_restarts_the_cursor():
+    fs = [courtyard("R1", 110, 60), courtyard("R2", 120, 60)]
+    session = make_session(EditorFake())
+
+    def go(focus, findings):
+        r = session.run_tool(lambda s: show_findings(s, findings, focus=focus))
+        assert r["ok"], r
+        return r["focus"], r["selection"]["footprints"]
+
+    assert go(1, fs) == ({"requested": 1, "index": 1}, ["R2"])
+    assert go("all", fs) == ({"requested": "all"}, ["R1", "R2"])
+    assert go("next", fs[:1]) == (
+        {
+            "requested": "next",
+            "index": 0,
+            "wrapped": False,
+            "cursor": "started (new or changed finding list)",
+        },
+        ["R1"],
+    )
 
 
 def test_input_hash_mismatch_flags_possibly_stale_but_still_resolves():
